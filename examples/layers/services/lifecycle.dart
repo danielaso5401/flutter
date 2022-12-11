@@ -5,10 +5,10 @@
 import 'package:flutter/widgets.dart';
 
 class LifecycleWatcher extends StatefulWidget {
-  const LifecycleWatcher({ Key? key }) : super(key: key);
+  const LifecycleWatcher({ super.key });
 
   @override
-  _LifecycleWatcherState createState() => _LifecycleWatcherState();
+  State<LifecycleWatcher> createState() => _LifecycleWatcherState();
 }
 
 class _LifecycleWatcherState extends State<LifecycleWatcher>
@@ -18,12 +18,12 @@ class _LifecycleWatcherState extends State<LifecycleWatcher>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

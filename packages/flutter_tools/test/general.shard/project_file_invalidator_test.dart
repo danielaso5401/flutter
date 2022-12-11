@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/logger.dart';
+import 'package:flutter_tools/src/base/multi_root_file_system.dart';
 import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/convert.dart';
 import 'package:flutter_tools/src/run_hot.dart';
@@ -160,9 +159,40 @@ void main() {
         );
 
       expect(nextInvalidationResult.uris, contains(Uri.parse('.packages')));
-      // The PackagConfig should have been recreated too
+      // The PackageConfig should have been recreated too
       expect(nextInvalidationResult.packageConfig,
         isNot(invalidationResult.packageConfig));
+    });
+
+    testWithoutContext('Works with MultiRootFileSystem uris, asyncScanning: $asyncScanning', () async {
+      final FileSystem fileSystem = MemoryFileSystem.test();
+      final FileSystem multiRootFileSystem = MultiRootFileSystem(
+        delegate: fileSystem,
+        scheme: 'scheme',
+        roots: <String>[
+          '/root',
+        ],
+      );
+      final ProjectFileInvalidator projectFileInvalidator = ProjectFileInvalidator(
+        fileSystem: multiRootFileSystem,
+        platform: FakePlatform(),
+        logger: BufferLogger.test(),
+      );
+
+      expect(
+        (await projectFileInvalidator.findInvalidated(
+          lastCompiled: inFuture,
+          urisToMonitor: <Uri>[
+            Uri.parse('file1'),
+            Uri.parse('file:///file2'),
+            Uri.parse('scheme:///file3'),
+          ],
+          packagesPath: '.packages',
+          asyncScanning: asyncScanning,
+          packageConfig: PackageConfig.empty,
+        )).uris,
+        isEmpty,
+      );
     });
   }
 }

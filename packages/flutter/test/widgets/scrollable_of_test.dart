@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 class ScrollPositionListener extends StatefulWidget {
-  const ScrollPositionListener({ Key? key, required this.child, required this.log}) : super(key: key);
+  const ScrollPositionListener({ super.key, required this.child, required this.log});
 
   final Widget child;
   final ValueChanged<String> log;
 
   @override
-  _ScrollPositionListenerState createState() => _ScrollPositionListenerState();
+  State<ScrollPositionListener> createState() => _ScrollPositionListenerState();
 }
 
 class _ScrollPositionListenerState extends State<ScrollPositionListener> {

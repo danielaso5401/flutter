@@ -10,7 +10,7 @@ import 'scaffold.dart' show Scaffold, ScaffoldMessenger;
 
 /// Asserts that the given context has a [Material] ancestor.
 ///
-/// Used by many material design widgets to make sure that they are
+/// Used by many Material Design widgets to make sure that they are
 /// only used in contexts where they can print ink onto some material.
 ///
 /// To call this function, use the following pattern, typically in the
@@ -19,6 +19,8 @@ import 'scaffold.dart' show Scaffold, ScaffoldMessenger;
 /// ```dart
 /// assert(debugCheckHasMaterial(context));
 /// ```
+///
+/// This method can be expensive (it walks the element tree).
 ///
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugCheckHasMaterial(BuildContext context) {
@@ -29,7 +31,7 @@ bool debugCheckHasMaterial(BuildContext context) {
         ErrorDescription(
           '${context.widget.runtimeType} widgets require a Material '
           'widget ancestor.\n'
-          'In material design, most widgets are conceptually "printed" on '
+          'In Material Design, most widgets are conceptually "printed" on '
           "a sheet of material. In Flutter's material library, that "
           'material is represented by the Material widget. It is the '
           'Material widget that renders ink splashes, for instance. '
@@ -52,7 +54,7 @@ bool debugCheckHasMaterial(BuildContext context) {
 /// Asserts that the given context has a [Localizations] ancestor that contains
 /// a [MaterialLocalizations] delegate.
 ///
-/// Used by many material design widgets to make sure that they are
+/// Used by many Material Design widgets to make sure that they are
 /// only used in contexts where they have access to localizations.
 ///
 /// To call this function, use the following pattern, typically in the
@@ -61,6 +63,11 @@ bool debugCheckHasMaterial(BuildContext context) {
 /// ```dart
 /// assert(debugCheckHasMaterialLocalizations(context));
 /// ```
+///
+/// This function has the side-effect of establishing an inheritance
+/// relationship with the nearest [Localizations] widget (see
+/// [BuildContext.dependOnInheritedWidgetOfExactType]). This is ok if the caller
+/// always also calls [Localizations.of] or [Localizations.localeOf].
 ///
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugCheckHasMaterialLocalizations(BuildContext context) {
@@ -102,6 +109,8 @@ bool debugCheckHasMaterialLocalizations(BuildContext context) {
 /// assert(debugCheckHasScaffold(context));
 /// ```
 ///
+/// This method can be expensive (it walks the element tree).
+///
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugCheckHasScaffold(BuildContext context) {
   assert(() {
@@ -132,6 +141,8 @@ bool debugCheckHasScaffold(BuildContext context) {
 /// ```dart
 /// assert(debugCheckHasScaffoldMessenger(context));
 /// ```
+///
+/// This method can be expensive (it walks the element tree).
 ///
 /// Does nothing if asserts are disabled. Always returns true.
 bool debugCheckHasScaffoldMessenger(BuildContext context) {

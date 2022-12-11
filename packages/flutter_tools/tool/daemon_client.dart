@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:flutter_tools/src/base/common.dart';
 
 late Process daemon;
 
@@ -16,7 +15,7 @@ late Process daemon;
 //   stop: stop a running app
 //   devices: list devices
 //   emulators: list emulators
-//   launch: launch an emulator
+//   emulator-launch: launch an emulator, append the word coldBoot to cold boot the emulator.
 
 Future<void> main() async {
   daemon = await Process.start('dart', <String>['bin/flutter_tools.dart', 'daemon']);
@@ -72,6 +71,8 @@ Future<void> main() async {
         'method': 'emulator.launch',
         'params': <String, dynamic>{
           'emulatorId': words[1],
+          if (words.contains('coldBoot'))
+            'coldBoot': true,
         },
       });
     } else if (line == 'enable') {

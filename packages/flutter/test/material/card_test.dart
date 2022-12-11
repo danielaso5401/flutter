@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../widgets/semantics_tester.dart';
@@ -87,7 +87,6 @@ void main() {
         child: Material(
           child: Center(
             child: Card(
-              semanticContainer: true,
               child: Column(
                 children: const <Widget>[
                   Text('First child'),
@@ -181,14 +180,14 @@ void main() {
             clipBehavior: Clip.antiAliasWithSaveLayer,
           ),
         ),
-        child: const Card(clipBehavior: null),
+        child: const Card(),
       );
     }));
     expect(tester.widget<Material>(find.byType(Material)).clipBehavior, Clip.antiAliasWithSaveLayer);
   });
 
   testWidgets('Card shadowColor', (WidgetTester tester) async {
-    Material _getCardMaterial(WidgetTester tester) {
+    Material getCardMaterial(WidgetTester tester) {
       return tester.widget<Material>(
         find.descendant(
           of: find.byType(Card),
@@ -197,9 +196,9 @@ void main() {
       );
     }
 
-    Card _getCard(WidgetTester tester) {
+    Card getCard(WidgetTester tester) {
       return tester.widget<Card>(
-          find.byType(Card)
+        find.byType(Card),
       );
     }
 
@@ -207,8 +206,8 @@ void main() {
       const Card(),
     );
 
-    expect(_getCard(tester).shadowColor, null);
-    expect(_getCardMaterial(tester).shadowColor, const Color(0xFF000000));
+    expect(getCard(tester).shadowColor, null);
+    expect(getCardMaterial(tester).shadowColor, const Color(0xFF000000));
 
     await tester.pumpWidget(
       const Card(
@@ -216,7 +215,7 @@ void main() {
       ),
     );
 
-    expect(_getCardMaterial(tester).shadowColor, _getCard(tester).shadowColor);
-    expect(_getCardMaterial(tester).shadowColor, Colors.red);
+    expect(getCardMaterial(tester).shadowColor, getCard(tester).shadowColor);
+    expect(getCardMaterial(tester).shadowColor, Colors.red);
   });
 }

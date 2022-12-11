@@ -2,16 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:file/memory.dart';
 import 'package:file_testing/file_testing.dart';
 import 'package:flutter_tools/src/artifacts.dart';
-import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
+import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/build_info.dart';
 import 'package:flutter_tools/src/build_system/build_system.dart';
-import 'package:flutter_tools/src/build_system/targets/assets.dart';
 import 'package:flutter_tools/src/build_system/targets/common.dart';
 import 'package:flutter_tools/src/build_system/targets/linux.dart';
 import 'package:flutter_tools/src/convert.dart';
@@ -91,7 +88,8 @@ void main() {
   });
 
   // Only required for the test below that still depends on the context.
-  FileSystem fileSystem;
+  late FileSystem fileSystem;
+
   setUp(() {
     fileSystem = MemoryFileSystem.test();
   });
@@ -101,6 +99,8 @@ void main() {
       fileSystem.currentDirectory,
       defines: <String, String>{
         kBuildMode: 'debug',
+        kBuildName: '2.0.0',
+        kBuildNumber: '22',
       },
       inputs: <String, String>{
         kBundleSkSLPath: 'bundle.sksl',
@@ -122,8 +122,8 @@ void main() {
         'platform': 'ios',
         'data': <String, Object>{
           'A': 'B',
-        }
-      }
+        },
+      },
     ));
 
     await const DebugBundleLinuxAssets(TargetPlatform.linux_x64).build(testEnvironment);
@@ -134,6 +134,9 @@ void main() {
     expect(output.childFile('kernel_blob.bin'), exists);
     expect(output.childFile('AssetManifest.json'), exists);
     expect(output.childFile('version.json'), exists);
+    final String versionFile = output.childFile('version.json').readAsStringSync();
+    expect(versionFile, contains('"version":"2.0.0"'));
+    expect(versionFile, contains('"build_number":"22"'));
     // SkSL
     expect(output.childFile('io.flutter.shaders.json'), exists);
     expect(output.childFile('io.flutter.shaders.json').readAsStringSync(), '{"data":{"A":"B"}}');
@@ -145,7 +148,7 @@ void main() {
     ProcessManager: () => FakeProcessManager.any(),
   });
 
-  testWithoutContext('DebugBundleLinuxAssets\'s name depends on target platforms', () async {
+  testWithoutContext("DebugBundleLinuxAssets' name depends on target platforms", () async {
     expect(const DebugBundleLinuxAssets(TargetPlatform.linux_x64).name, 'debug_bundle_linux-x64_assets');
     expect(const DebugBundleLinuxAssets(TargetPlatform.linux_arm64).name, 'debug_bundle_linux-arm64_assets');
   });
@@ -184,7 +187,7 @@ void main() {
     ProcessManager: () => FakeProcessManager.any(),
   });
 
-  testWithoutContext('ProfileBundleLinuxAssets\'s name depends on target platforms', () async {
+  testWithoutContext("ProfileBundleLinuxAssets' name depends on target platforms", () async {
     expect(const ProfileBundleLinuxAssets(TargetPlatform.linux_x64).name, 'profile_bundle_linux-x64_assets');
     expect(const ProfileBundleLinuxAssets(TargetPlatform.linux_arm64).name, 'profile_bundle_linux-arm64_assets');
   });
@@ -223,7 +226,7 @@ void main() {
     ProcessManager: () => FakeProcessManager.any(),
   });
 
-  testWithoutContext('ReleaseBundleLinuxAssets\'s name depends on target platforms', () async {
+  testWithoutContext("ReleaseBundleLinuxAssets' name depends on target platforms", () async {
     expect(const ReleaseBundleLinuxAssets(TargetPlatform.linux_x64).name, 'release_bundle_linux-x64_assets');
     expect(const ReleaseBundleLinuxAssets(TargetPlatform.linux_arm64).name, 'release_bundle_linux-arm64_assets');
   });

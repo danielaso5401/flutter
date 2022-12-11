@@ -88,10 +88,9 @@ const Map<String, Set<String>> _materialActions = <String, Set<String>>{
 
 class _ChipsTile extends StatelessWidget {
   const _ChipsTile({
-    Key? key,
     this.label,
     this.children,
-  }) : super(key: key);
+  });
 
   final String? label;
   final List<Widget>? children;
@@ -135,12 +134,12 @@ class _ChipsTile extends StatelessWidget {
 }
 
 class ChipDemo extends StatefulWidget {
-  const ChipDemo({Key? key}) : super(key: key);
+  const ChipDemo({super.key});
 
   static const String routeName = '/material/chip';
 
   @override
-  _ChipDemoState createState() => _ChipDemoState();
+  State<ChipDemo> createState() => _ChipDemoState();
 }
 
 class _ChipDemoState extends State<ChipDemo> {
@@ -220,7 +219,8 @@ class _ChipDemoState extends State<ChipDemo> {
     if (_selectedAction.isEmpty) {
       return '';
     }
-    return _capitalize(_results[_selectedAction]!) + '!';
+    final String value = _capitalize(_results[_selectedAction]!);
+    return '$value!';
   }
 
   @override
@@ -343,11 +343,16 @@ class _ChipDemoState extends State<ChipDemo> {
         data: _showShapeBorder
             ? theme.chipTheme.copyWith(
                 shape: BeveledRectangleBorder(
-                side: const BorderSide(width: 0.66, style: BorderStyle.solid, color: Colors.grey),
+                side: const BorderSide(width: 0.66, color: Colors.grey),
                 borderRadius: BorderRadius.circular(10.0),
               ))
             : theme.chipTheme,
-        child: Scrollbar(child: ListView(children: tiles)),
+        child: Scrollbar(
+          child: ListView(
+            primary: true,
+            children: tiles,
+          )
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(_reset),

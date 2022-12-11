@@ -3,20 +3,17 @@
 // found in the LICENSE file.
 
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'dart:ui';
-
-// This import is discouraged in general, but we need it to implement flutter_test.
-// ignore: deprecated_member_use
-import 'package:test_api/test_api.dart';
-import 'package:test_api/src/frontend/async_matcher.dart'; // ignore: implementation_imports
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Card;
-import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:test_api/src/expect/async_matcher.dart'; // ignore: implementation_imports
+// This import is discouraged in general, but we need it to implement flutter_test.
+// ignore: deprecated_member_use
+import 'package:test_api/test_api.dart';
 
 import '_matchers_io.dart' if (dart.library.html) '_matchers_web.dart' show MatchesGoldenFile, captureImage;
 import 'accessibility.dart';
@@ -38,6 +35,7 @@ import 'widget_tester.dart' show WidgetTester;
 ///  * [findsWidgets], when you want the finder to find one or more widgets.
 ///  * [findsOneWidget], when you want the finder to find exactly one widget.
 ///  * [findsNWidgets], when you want the finder to find a specific number of widgets.
+///  * [findsAtLeastNWidgets], when you want the finder to find at least a specific number of widgets.
 const Matcher findsNothing = _FindsWidgetMatcher(null, 0);
 
 /// Asserts that the [Finder] locates at least one widget in the widget tree.
@@ -53,6 +51,7 @@ const Matcher findsNothing = _FindsWidgetMatcher(null, 0);
 ///  * [findsNothing], when you want the finder to not find anything.
 ///  * [findsOneWidget], when you want the finder to find exactly one widget.
 ///  * [findsNWidgets], when you want the finder to find a specific number of widgets.
+///  * [findsAtLeastNWidgets], when you want the finder to find at least a specific number of widgets.
 const Matcher findsWidgets = _FindsWidgetMatcher(1, null);
 
 /// Asserts that the [Finder] locates at exactly one widget in the widget tree.
@@ -68,6 +67,7 @@ const Matcher findsWidgets = _FindsWidgetMatcher(1, null);
 ///  * [findsNothing], when you want the finder to not find anything.
 ///  * [findsWidgets], when you want the finder to find one or more widgets.
 ///  * [findsNWidgets], when you want the finder to find a specific number of widgets.
+///  * [findsAtLeastNWidgets], when you want the finder to find at least a specific number of widgets.
 const Matcher findsOneWidget = _FindsWidgetMatcher(1, 1);
 
 /// Asserts that the [Finder] locates the specified number of widgets in the widget tree.
@@ -83,7 +83,24 @@ const Matcher findsOneWidget = _FindsWidgetMatcher(1, 1);
 ///  * [findsNothing], when you want the finder to not find anything.
 ///  * [findsWidgets], when you want the finder to find one or more widgets.
 ///  * [findsOneWidget], when you want the finder to find exactly one widget.
+///  * [findsAtLeastNWidgets], when you want the finder to find at least a specific number of widgets.
 Matcher findsNWidgets(int n) => _FindsWidgetMatcher(n, n);
+
+/// Asserts that the [Finder] locates at least a number of widgets in the widget tree.
+///
+/// ## Sample code
+///
+/// ```dart
+/// expect(find.text('Save'), findsAtLeastNWidgets(2));
+/// ```
+///
+/// See also:
+///
+///  * [findsNothing], when you want the finder to not find anything.
+///  * [findsWidgets], when you want the finder to find one or more widgets.
+///  * [findsOneWidget], when you want the finder to find exactly one widget.
+///  * [findsNWidgets], when you want the finder to find a specific number of widgets.
+Matcher findsAtLeastNWidgets(int n) => _FindsWidgetMatcher(n, null);
 
 /// Asserts that the [Finder] locates a single widget that has at
 /// least one [Offstage] widget ancestor.
@@ -266,12 +283,12 @@ Matcher offsetMoreOrLessEquals(Offset value, { double epsilon = precisionErrorTo
 /// Asserts that two [String]s are equal after normalizing likely hash codes.
 ///
 /// A `#` followed by 5 hexadecimal digits is assumed to be a short hash code
-/// and is normalized to #00000.
+/// and is normalized to `#00000`.
 ///
 /// See Also:
 ///
 ///  * [describeIdentity], a method that generates short descriptions of objects
-///    with ids that match the pattern #[0-9a-f]{5}.
+///    with ids that match the pattern `#[0-9a-f]{5}`.
 ///  * [shortHash], a method that generates a 5 character long hexadecimal
 ///    [String] based on [Object.hashCode].
 ///  * [DiagnosticableTree.toStringDeep], a method that returns a [String]
@@ -355,6 +372,61 @@ Matcher coversSameAreaAs(Path expectedPath, { required Rect areaToCompare, int s
 /// ```
 /// {@end-tool}
 ///
+/// {@template flutter.flutter_test.matchesGoldenFile.custom_fonts}
+/// ## Including Fonts
+///
+/// Custom fonts may render differently across different platforms, or
+/// between different versions of Flutter. For example, a golden file generated
+/// on Windows with fonts will likely differ from the one produced by another
+/// operating system. Even on the same platform, if the generated golden is
+/// tested with a different Flutter version, the test may fail and require an
+/// updated image.
+///
+/// By default, the Flutter framework uses a font called 'Ahem' which shows
+/// squares instead of characters, however, it is possible to render images using
+/// custom fonts. For example, this is how to load the 'Roboto' font for a
+/// golden test:
+///
+/// {@tool snippet}
+/// How to load a custom font for golden images.
+/// ```dart
+/// testWidgets('Creating a golden image with a custom font', (tester) async {
+///   // Assuming the 'Roboto.ttf' file is declared in the pubspec.yaml file
+///   final font = rootBundle.load('path/to/font-file/Roboto.ttf');
+///
+///   final fontLoader = FontLoader('Roboto')..addFont(font);
+///   await fontLoader.load();
+///
+///   await tester.pumpWidget(const SomeWidget());
+///
+///   await expectLater(
+///     find.byType(SomeWidget),
+///     matchesGoldenFile('someWidget.png'),
+///   );
+/// });
+/// ```
+/// {@end-tool}
+///
+/// The example above loads the desired font only for that specific test. To load
+/// a font for all golden file tests, the `FontLoader.load()` call could be
+/// moved in the `flutter_test_config.dart`. In this way, the font will always be
+/// loaded before a test:
+///
+/// {@tool snippet}
+/// Loading a custom font from the flutter_test_config.dart file.
+/// ```dart
+/// Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+///   setUpAll(() async {
+///     final fontLoader = FontLoader('SomeFont')..addFont(someFont);
+///     await fontLoader.load();
+///   });
+///
+///   await testMain();
+/// });
+/// ```
+/// {@end-tool}
+/// {@endtemplate}
+///
 /// See also:
 ///
 ///  * [GoldenFileComparator], which acts as the backend for this matcher.
@@ -423,7 +495,7 @@ AsyncMatcher matchesReferenceImage(ui.Image image) {
 ///
 /// ```dart
 /// final SemanticsHandle handle = tester.ensureSemantics();
-/// expect(tester.getSemantics(find.text('hello')), matchesSemanticsNode(label: 'hello'));
+/// expect(tester.getSemantics(find.text('hello')), matchesSemantics(label: 'hello'));
 /// handle.dispose();
 /// ```
 ///
@@ -432,10 +504,16 @@ AsyncMatcher matchesReferenceImage(ui.Image image) {
 ///   * [WidgetTester.getSemantics], the tester method which retrieves semantics.
 Matcher matchesSemantics({
   String? label,
+  AttributedString? attributedLabel,
   String? hint,
+  AttributedString? attributedHint,
   String? value,
+  AttributedString? attributedValue,
   String? increasedValue,
+  AttributedString? attributedIncreasedValue,
   String? decreasedValue,
+  String? tooltip,
+  AttributedString? attributedDecreasedValue,
   TextDirection? textDirection,
   Rect? rect,
   Size? size,
@@ -524,7 +602,7 @@ Matcher matchesSemantics({
     if (hasToggledState) SemanticsFlag.hasToggledState,
     if (isToggled) SemanticsFlag.isToggled,
     if (hasImplicitScrolling) SemanticsFlag.hasImplicitScrolling,
-    if (isSlider) SemanticsFlag.isSlider
+    if (isSlider) SemanticsFlag.isSlider,
   ];
 
   final List<SemanticsAction> actions = <SemanticsAction>[
@@ -552,18 +630,25 @@ Matcher matchesSemantics({
     if (hasSetTextAction) SemanticsAction.setText,
   ];
   SemanticsHintOverrides? hintOverrides;
-  if (onTapHint != null || onLongPressHint != null)
+  if (onTapHint != null || onLongPressHint != null) {
     hintOverrides = SemanticsHintOverrides(
       onTapHint: onTapHint,
       onLongPressHint: onLongPressHint,
     );
+  }
 
   return _MatchesSemanticsData(
     label: label,
+    attributedLabel: attributedLabel,
     hint: hint,
+    attributedHint: attributedHint,
     value: value,
+    attributedValue: attributedValue,
     increasedValue: increasedValue,
+    tooltip: tooltip,
+    attributedIncreasedValue: attributedIncreasedValue,
     decreasedValue: decreasedValue,
+    attributedDecreasedValue: attributedDecreasedValue,
     actions: actions,
     flags: flags,
     textDirection: textDirection,
@@ -599,6 +684,7 @@ Matcher matchesSemantics({
 ///   * [androidTapTargetGuideline], for Android minimum tappable area guidelines.
 ///   * [iOSTapTargetGuideline], for iOS minimum tappable area guidelines.
 ///   * [textContrastGuideline], for WCAG minimum text contrast guidelines.
+///   * [labeledTapTargetGuideline], for enforcing labels on tappable areas.
 AsyncMatcher meetsGuideline(AccessibilityGuideline guideline) {
   return _MatchesAccessibilityGuideline(guideline);
 }
@@ -625,16 +711,20 @@ class _FindsWidgetMatcher extends Matcher {
     int count = 0;
     final Iterator<Element> iterator = finder.evaluate().iterator;
     if (min != null) {
-      while (count < min! && iterator.moveNext())
+      while (count < min! && iterator.moveNext()) {
         count += 1;
-      if (count < min!)
+      }
+      if (count < min!) {
         return false;
+      }
     }
     if (max != null) {
-      while (count <= max! && iterator.moveNext())
+      while (count <= max! && iterator.moveNext()) {
         count += 1;
-      if (count > max!)
+      }
+      if (count > max!) {
         return false;
+      }
     }
     return true;
   }
@@ -643,20 +733,24 @@ class _FindsWidgetMatcher extends Matcher {
   Description describe(Description description) {
     assert(min != null || max != null);
     if (min == max) {
-      if (min == 1)
+      if (min == 1) {
         return description.add('exactly one matching node in the widget tree');
+      }
       return description.add('exactly $min matching nodes in the widget tree');
     }
     if (min == null) {
-      if (max == 0)
+      if (max == 0) {
         return description.add('no matching nodes in the widget tree');
-      if (max == 1)
+      }
+      if (max == 1) {
         return description.add('at most one matching node in the widget tree');
+      }
       return description.add('at most $max matching nodes in the widget tree');
     }
     if (max == null) {
-      if (min == 1)
+      if (min == 1) {
         return description.add('at least one matching node in the widget tree');
+      }
       return description.add('at least $min matching nodes in the widget tree');
     }
     return description.add('between $min and $max matching nodes in the widget tree (inclusive)');
@@ -673,17 +767,20 @@ class _FindsWidgetMatcher extends Matcher {
     final int count = finder.evaluate().length;
     if (count == 0) {
       assert(min != null && min! > 0);
-      if (min == 1 && max == 1)
+      if (min == 1 && max == 1) {
         return mismatchDescription.add('means none were found but one was expected');
+      }
       return mismatchDescription.add('means none were found but some were expected');
     }
     if (max == 0) {
-      if (count == 1)
+      if (count == 1) {
         return mismatchDescription.add('means one was found but none were expected');
+      }
       return mismatchDescription.add('means some were found but none were expected');
     }
-    if (min != null && count < min!)
+    if (min != null && count < min!) {
       return mismatchDescription.add('is not enough');
+    }
     assert(max != null && count > min!);
     return mismatchDescription.add('is too many');
   }
@@ -691,8 +788,9 @@ class _FindsWidgetMatcher extends Matcher {
 
 bool _hasAncestorMatching(Finder finder, bool Function(Widget widget) predicate) {
   final Iterable<Element> nodes = finder.evaluate();
-  if (nodes.length != 1)
+  if (nodes.length != 1) {
     return false;
+  }
   bool result = false;
   nodes.single.visitAncestorElements((Element ancestor) {
     if (predicate(ancestor.widget)) {
@@ -714,8 +812,9 @@ class _IsOffstage extends Matcher {
   @override
   bool matches(covariant Finder finder, Map<dynamic, dynamic> matchState) {
     return _hasAncestorMatching(finder, (Widget widget) {
-      if (widget is Offstage)
+      if (widget is Offstage) {
         return widget.offstage;
+      }
       return false;
     });
   }
@@ -730,8 +829,9 @@ class _IsOnstage extends Matcher {
   @override
   bool matches(covariant Finder finder, Map<dynamic, dynamic> matchState) {
     final Iterable<Element> nodes = finder.evaluate();
-    if (nodes.length != 1)
+    if (nodes.length != 1) {
       return false;
+    }
     bool result = true;
     nodes.single.visitAncestorElements((Element ancestor) {
       final Widget widget = ancestor.widget;
@@ -853,8 +953,9 @@ bool _isVerticalLine(int c) {
 bool _isAllTreeConnectorCharacters(String line) {
   for (int i = 0; i < line.length; ++i) {
     final int c = line.codeUnitAt(i);
-    if (!_isWhitespace(c) && !_isVerticalLine(c))
+    if (!_isWhitespace(c) && !_isVerticalLine(c)) {
       return false;
+    }
   }
   return true;
 }
@@ -867,7 +968,7 @@ class _HasGoodToStringDeep extends Matcher {
   @override
   bool matches(dynamic object, Map<dynamic, dynamic> matchState) {
     final List<String> issues = <String>[];
-    String description = object.toStringDeep() as String;
+    String description = object.toStringDeep() as String; // ignore: avoid_dynamic_calls
     if (description.endsWith('\n')) {
       // Trim off trailing \n as the remaining calculations assume
       // the description does not end with a trailing \n.
@@ -876,27 +977,33 @@ class _HasGoodToStringDeep extends Matcher {
       issues.add('Not terminated with a line break.');
     }
 
-    if (description.trim() != description)
+    if (description.trim() != description) {
       issues.add('Has trailing whitespace.');
+    }
 
     final List<String> lines = description.split('\n');
-    if (lines.length < 2)
+    if (lines.length < 2) {
       issues.add('Does not have multiple lines.');
+    }
 
-    if (description.contains('Instance of '))
+    if (description.contains('Instance of ')) {
       issues.add('Contains text "Instance of ".');
+    }
 
     for (int i = 0; i < lines.length; ++i) {
       final String line = lines[i];
-      if (line.isEmpty)
+      if (line.isEmpty) {
         issues.add('Line ${i+1} is empty.');
+      }
 
-      if (line.trimRight() != line)
+      if (line.trimRight() != line) {
         issues.add('Line ${i+1} has trailing whitespace.');
+      }
     }
 
-    if (_isAllTreeConnectorCharacters(lines.last))
+    if (_isAllTreeConnectorCharacters(lines.last)) {
       issues.add('Last line is all tree connector characters.');
+    }
 
     // If a toStringDeep method doesn't properly handle nested values that
     // contain line breaks it can fail to add the required prefixes to all
@@ -905,7 +1012,7 @@ class _HasGoodToStringDeep extends Matcher {
     const String prefixOtherLines = 'PREFIX_OTHER_LINES_';
     final List<String> prefixIssues = <String>[];
     String descriptionWithPrefixes =
-      object.toStringDeep(prefixLineOne: prefixLineOne, prefixOtherLines: prefixOtherLines) as String;
+      object.toStringDeep(prefixLineOne: prefixLineOne, prefixOtherLines: prefixOtherLines) as String; // ignore: avoid_dynamic_calls
     if (descriptionWithPrefixes.endsWith('\n')) {
       // Trim off trailing \n as the remaining calculations assume
       // the description does not end with a trailing \n.
@@ -913,12 +1020,14 @@ class _HasGoodToStringDeep extends Matcher {
           0, descriptionWithPrefixes.length - 1);
     }
     final List<String> linesWithPrefixes = descriptionWithPrefixes.split('\n');
-    if (!linesWithPrefixes.first.startsWith(prefixLineOne))
+    if (!linesWithPrefixes.first.startsWith(prefixLineOne)) {
       prefixIssues.add('First line does not contain expected prefix.');
+    }
 
     for (int i = 1; i < linesWithPrefixes.length; ++i) {
-      if (!linesWithPrefixes[i].startsWith(prefixOtherLines))
+      if (!linesWithPrefixes[i].startsWith(prefixOtherLines)) {
         prefixIssues.add('Line ${i+1} does not contain the expected prefix.');
+      }
     }
 
     final StringBuffer errorDescription = StringBuffer();
@@ -1093,10 +1202,12 @@ class _IsWithinDistance<T> extends Matcher {
 
   @override
   bool matches(dynamic object, Map<dynamic, dynamic> matchState) {
-    if (object is! T)
+    if (object is! T) {
       return false;
-    if (object == value)
+    }
+    if (object == value) {
       return true;
+    }
     final num distance = distanceFunction(object, value);
     if (distance < 0) {
       throw ArgumentError(
@@ -1133,10 +1244,12 @@ class _MoreOrLessEquals extends Matcher {
 
   @override
   bool matches(dynamic object, Map<dynamic, dynamic> matchState) {
-    if (object is! double)
+    if (object is! double) {
       return false;
-    if (object == value)
+    }
+    if (object == value) {
       return true;
+    }
     return (object - value).abs() <= epsilon;
   }
 
@@ -1158,39 +1271,48 @@ class _IsMethodCall extends Matcher {
 
   @override
   bool matches(dynamic item, Map<dynamic, dynamic> matchState) {
-    if (item is! MethodCall)
+    if (item is! MethodCall) {
       return false;
-    if (item.method != name)
+    }
+    if (item.method != name) {
       return false;
+    }
     return _deepEquals(item.arguments, arguments);
   }
 
   bool _deepEquals(dynamic a, dynamic b) {
-    if (a == b)
+    if (a == b) {
       return true;
-    if (a is List)
+    }
+    if (a is List) {
       return b is List && _deepEqualsList(a, b);
-    if (a is Map)
+    }
+    if (a is Map) {
       return b is Map && _deepEqualsMap(a, b);
+    }
     return false;
   }
 
   bool _deepEqualsList(List<dynamic> a, List<dynamic> b) {
-    if (a.length != b.length)
+    if (a.length != b.length) {
       return false;
+    }
     for (int i = 0; i < a.length; i++) {
-      if (!_deepEquals(a[i], b[i]))
+      if (!_deepEquals(a[i], b[i])) {
         return false;
+      }
     }
     return true;
   }
 
   bool _deepEqualsMap(Map<dynamic, dynamic> a, Map<dynamic, dynamic> b) {
-    if (a.length != b.length)
+    if (a.length != b.length) {
       return false;
+    }
     for (final dynamic key in a.keys) {
-      if (!b.containsKey(key) || !_deepEquals(a[key], b[key]))
+      if (!b.containsKey(key) || !_deepEquals(a[key], b[key])) {
         return false;
+      }
     }
     return true;
   }
@@ -1296,8 +1418,9 @@ class _MatchAnythingExceptClip extends _FailWithDescriptionMatcher {
   @override
   bool matches(covariant Finder finder, Map<dynamic, dynamic> matchState) {
     final Iterable<Element> nodes = finder.evaluate();
-    if (nodes.length != 1)
+    if (nodes.length != 1) {
       return failWithDescription(matchState, 'did not have a exactly one child element');
+    }
     final RenderObject renderObject = nodes.single.renderObject!;
 
     switch (renderObject.runtimeType) {
@@ -1326,15 +1449,18 @@ abstract class _MatchRenderObject<M extends RenderObject, T extends RenderObject
   @override
   bool matches(covariant Finder finder, Map<dynamic, dynamic> matchState) {
     final Iterable<Element> nodes = finder.evaluate();
-    if (nodes.length != 1)
+    if (nodes.length != 1) {
       return failWithDescription(matchState, 'did not have a exactly one child element');
+    }
     final RenderObject renderObject = nodes.single.renderObject!;
 
-    if (renderObject.runtimeType == T)
+    if (renderObject.runtimeType == T) {
       return renderObjectMatchesT(matchState, renderObject as T);
+    }
 
-    if (renderObject.runtimeType == M)
+    if (renderObject.runtimeType == M) {
       return renderObjectMatchesM(matchState, renderObject as M);
+    }
 
     return failWithDescription(matchState, 'had a root render object of type: ${renderObject.runtimeType}');
   }
@@ -1353,26 +1479,31 @@ class _RendersOnPhysicalModel extends _MatchRenderObject<RenderPhysicalShape, Re
 
   @override
   bool renderObjectMatchesT(Map<dynamic, dynamic> matchState, RenderPhysicalModel renderObject) {
-    if (shape != null && renderObject.shape != shape)
+    if (shape != null && renderObject.shape != shape) {
       return failWithDescription(matchState, 'had shape: ${renderObject.shape}');
+    }
 
-    if (borderRadius != null && renderObject.borderRadius != borderRadius)
+    if (borderRadius != null && renderObject.borderRadius != borderRadius) {
       return failWithDescription(matchState, 'had borderRadius: ${renderObject.borderRadius}');
+    }
 
-    if (elevation != null && renderObject.elevation != elevation)
+    if (elevation != null && renderObject.elevation != elevation) {
       return failWithDescription(matchState, 'had elevation: ${renderObject.elevation}');
+    }
 
     return true;
   }
 
   @override
   bool renderObjectMatchesM(Map<dynamic, dynamic> matchState, RenderPhysicalShape renderObject) {
-    if (renderObject.clipper.runtimeType != ShapeBorderClipper)
+    if (renderObject.clipper.runtimeType != ShapeBorderClipper) {
       return failWithDescription(matchState, 'clipper was: ${renderObject.clipper}');
+    }
     final ShapeBorderClipper shapeClipper = renderObject.clipper! as ShapeBorderClipper;
 
-    if (borderRadius != null && !assertRoundedRectangle(shapeClipper, borderRadius!, matchState))
+    if (borderRadius != null && !assertRoundedRectangle(shapeClipper, borderRadius!, matchState)) {
       return false;
+    }
 
     if (
       borderRadius == null &&
@@ -1390,36 +1521,43 @@ class _RendersOnPhysicalModel extends _MatchRenderObject<RenderPhysicalShape, Re
       return false;
     }
 
-    if (elevation != null && renderObject.elevation != elevation)
+    if (elevation != null && renderObject.elevation != elevation) {
       return failWithDescription(matchState, 'had elevation: ${renderObject.elevation}');
+    }
 
     return true;
   }
 
   bool assertRoundedRectangle(ShapeBorderClipper shapeClipper, BorderRadius borderRadius, Map<dynamic, dynamic> matchState) {
-    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder)
+    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder) {
       return failWithDescription(matchState, 'had shape border: ${shapeClipper.shape}');
+    }
     final RoundedRectangleBorder border = shapeClipper.shape as RoundedRectangleBorder;
-    if (border.borderRadius != borderRadius)
+    if (border.borderRadius != borderRadius) {
       return failWithDescription(matchState, 'had borderRadius: ${border.borderRadius}');
+    }
     return true;
   }
 
   bool assertCircle(ShapeBorderClipper shapeClipper, Map<dynamic, dynamic> matchState) {
-    if (shapeClipper.shape.runtimeType != CircleBorder)
+    if (shapeClipper.shape.runtimeType != CircleBorder) {
       return failWithDescription(matchState, 'had shape border: ${shapeClipper.shape}');
+    }
     return true;
   }
 
   @override
   Description describe(Description description) {
     description.add('renders on a physical model');
-    if (shape != null)
+    if (shape != null) {
       description.add(' with shape $shape');
-    if (borderRadius != null)
+    }
+    if (borderRadius != null) {
       description.add(' with borderRadius $borderRadius');
-    if (elevation != null)
+    }
+    if (elevation != null) {
       description.add(' with elevation $elevation');
+    }
     return description;
   }
 }
@@ -1435,15 +1573,18 @@ class _RendersOnPhysicalShape extends _MatchRenderObject<RenderPhysicalShape, Re
 
   @override
   bool renderObjectMatchesM(Map<dynamic, dynamic> matchState, RenderPhysicalShape renderObject) {
-    if (renderObject.clipper.runtimeType != ShapeBorderClipper)
+    if (renderObject.clipper.runtimeType != ShapeBorderClipper) {
       return failWithDescription(matchState, 'clipper was: ${renderObject.clipper}');
+    }
     final ShapeBorderClipper shapeClipper = renderObject.clipper! as ShapeBorderClipper;
 
-    if (shapeClipper.shape != shape)
+    if (shapeClipper.shape != shape) {
       return failWithDescription(matchState, 'shape was: ${shapeClipper.shape}');
+    }
 
-    if (elevation != null && renderObject.elevation != elevation)
+    if (elevation != null && renderObject.elevation != elevation) {
       return failWithDescription(matchState, 'had elevation: ${renderObject.elevation}');
+    }
 
     return true;
   }
@@ -1456,8 +1597,9 @@ class _RendersOnPhysicalShape extends _MatchRenderObject<RenderPhysicalShape, Re
   @override
   Description describe(Description description) {
     description.add('renders on a physical model with shape $shape');
-    if (elevation != null)
+    if (elevation != null) {
       description.add(' with elevation $elevation');
+    }
     return description;
   }
 }
@@ -1467,21 +1609,25 @@ class _ClipsWithBoundingRect extends _MatchRenderObject<RenderClipPath, RenderCl
 
   @override
   bool renderObjectMatchesT(Map<dynamic, dynamic> matchState, RenderClipRect renderObject) {
-    if (renderObject.clipper != null)
+    if (renderObject.clipper != null) {
       return failWithDescription(matchState, 'had a non null clipper ${renderObject.clipper}');
+    }
     return true;
   }
 
   @override
   bool renderObjectMatchesM(Map<dynamic, dynamic> matchState, RenderClipPath renderObject) {
-    if (renderObject.clipper.runtimeType != ShapeBorderClipper)
+    if (renderObject.clipper.runtimeType != ShapeBorderClipper) {
       return failWithDescription(matchState, 'clipper was: ${renderObject.clipper}');
+    }
     final ShapeBorderClipper shapeClipper = renderObject.clipper! as ShapeBorderClipper;
-    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder)
+    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder) {
       return failWithDescription(matchState, 'shape was: ${shapeClipper.shape}');
+    }
     final RoundedRectangleBorder border = shapeClipper.shape as RoundedRectangleBorder;
-    if (border.borderRadius != BorderRadius.zero)
+    if (border.borderRadius != BorderRadius.zero) {
       return failWithDescription(matchState, 'borderRadius was: ${border.borderRadius}');
+    }
     return true;
   }
 
@@ -1498,25 +1644,30 @@ class _ClipsWithBoundingRRect extends _MatchRenderObject<RenderClipPath, RenderC
 
   @override
   bool renderObjectMatchesT(Map<dynamic, dynamic> matchState, RenderClipRRect renderObject) {
-    if (renderObject.clipper != null)
+    if (renderObject.clipper != null) {
       return failWithDescription(matchState, 'had a non null clipper ${renderObject.clipper}');
+    }
 
-    if (renderObject.borderRadius != borderRadius)
+    if (renderObject.borderRadius != borderRadius) {
       return failWithDescription(matchState, 'had borderRadius: ${renderObject.borderRadius}');
+    }
 
     return true;
   }
 
   @override
   bool renderObjectMatchesM(Map<dynamic, dynamic> matchState, RenderClipPath renderObject) {
-    if (renderObject.clipper.runtimeType != ShapeBorderClipper)
+    if (renderObject.clipper.runtimeType != ShapeBorderClipper) {
       return failWithDescription(matchState, 'clipper was: ${renderObject.clipper}');
+    }
     final ShapeBorderClipper shapeClipper = renderObject.clipper! as ShapeBorderClipper;
-    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder)
+    if (shapeClipper.shape.runtimeType != RoundedRectangleBorder) {
       return failWithDescription(matchState, 'shape was: ${shapeClipper.shape}');
+    }
     final RoundedRectangleBorder border = shapeClipper.shape as RoundedRectangleBorder;
-    if (border.borderRadius != borderRadius)
+    if (border.borderRadius != borderRadius) {
       return failWithDescription(matchState, 'had borderRadius: ${border.borderRadius}');
+    }
     return true;
   }
 
@@ -1532,11 +1683,13 @@ class _ClipsWithShapeBorder extends _MatchRenderObject<RenderClipPath, RenderCli
 
   @override
   bool renderObjectMatchesM(Map<dynamic, dynamic> matchState, RenderClipPath renderObject) {
-    if (renderObject.clipper.runtimeType != ShapeBorderClipper)
+    if (renderObject.clipper.runtimeType != ShapeBorderClipper) {
       return failWithDescription(matchState, 'clipper was: ${renderObject.clipper}');
+    }
     final ShapeBorderClipper shapeClipper = renderObject.clipper! as ShapeBorderClipper;
-    if (shapeClipper.shape != shape)
+    if (shapeClipper.shape != shape) {
       return failWithDescription(matchState, 'shape was: ${shapeClipper.shape}');
+    }
     return true;
   }
 
@@ -1578,29 +1731,33 @@ class _CoversSameAreaAs extends Matcher {
           j * (areaToCompare.height / sampleSize),
         );
 
-        if (!_samplePoint(matchState, actualPath, offset))
+        if (!_samplePoint(matchState, actualPath, offset)) {
           return false;
+        }
 
         final Offset noise = Offset(
           maxHorizontalNoise * random.nextDouble(),
           maxVerticalNoise * random.nextDouble(),
         );
 
-        if (!_samplePoint(matchState, actualPath, offset + noise))
+        if (!_samplePoint(matchState, actualPath, offset + noise)) {
           return false;
+        }
       }
     }
     return true;
   }
 
   bool _samplePoint(Map<dynamic, dynamic> matchState, Path actualPath, Offset offset) {
-    if (expectedPath.contains(offset) == actualPath.contains(offset))
+    if (expectedPath.contains(offset) == actualPath.contains(offset)) {
       return true;
+    }
 
-    if (actualPath.contains(offset))
+    if (actualPath.contains(offset)) {
       return failWithDescription(matchState, '$offset is contained in the actual path but not in the expected path');
-    else
+    } else {
       return failWithDescription(matchState, '$offset is contained in the expected path but not in the actual path');
+    }
   }
 
   bool failWithDescription(Map<dynamic, dynamic> matchState, String description) {
@@ -1632,8 +1789,9 @@ class _ColorMatcher extends Matcher {
 
   @override
   bool matches(dynamic item, Map<dynamic, dynamic> matchState) {
-    if (item is Color)
+    if (item is Color) {
       return item == targetColor || item.value == targetColor.value;
+    }
     return false;
   }
 
@@ -1678,19 +1836,22 @@ class _MatchesReferenceImage extends AsyncMatcher {
       imageFuture = captureImage(elements.single);
     }
 
-    final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized() as TestWidgetsFlutterBinding;
+    final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
     return binding.runAsync<String?>(() async {
       final ui.Image image = await imageFuture;
       final ByteData? bytes = await image.toByteData();
-      if (bytes == null)
+      if (bytes == null) {
         return 'could not be encoded.';
+      }
 
       final ByteData? referenceBytes = await referenceImage.toByteData();
-      if (referenceBytes == null)
+      if (referenceBytes == null) {
         return 'could not have its reference image encoded.';
+      }
 
-      if (referenceImage.height != image.height || referenceImage.width != image.width)
+      if (referenceImage.height != image.height || referenceImage.width != image.width) {
         return 'does not match as width or height do not match. $image != $referenceImage';
+      }
 
       final int countDifferentPixels = _countDifferentPixels(
         Uint8List.view(bytes.buffer),
@@ -1709,10 +1870,16 @@ class _MatchesReferenceImage extends AsyncMatcher {
 class _MatchesSemanticsData extends Matcher {
   _MatchesSemanticsData({
     this.label,
-    this.value,
-    this.increasedValue,
-    this.decreasedValue,
+    this.attributedLabel,
     this.hint,
+    this.attributedHint,
+    this.value,
+    this.attributedValue,
+    this.increasedValue,
+    this.attributedIncreasedValue,
+    this.decreasedValue,
+    this.attributedDecreasedValue,
+    this.tooltip,
     this.flags,
     this.actions,
     this.textDirection,
@@ -1729,10 +1896,16 @@ class _MatchesSemanticsData extends Matcher {
   });
 
   final String? label;
-  final String? value;
+  final AttributedString? attributedLabel;
   final String? hint;
+  final AttributedString? attributedHint;
+  final String? value;
+  final AttributedString? attributedValue;
   final String? increasedValue;
+  final AttributedString? attributedIncreasedValue;
   final String? decreasedValue;
+  final AttributedString? attributedDecreasedValue;
+  final String? tooltip;
   final SemanticsHintOverrides? hintOverrides;
   final List<SemanticsAction>? actions;
   final List<CustomSemanticsAction>? customActions;
@@ -1750,86 +1923,188 @@ class _MatchesSemanticsData extends Matcher {
   @override
   Description describe(Description description) {
     description.add('has semantics');
-    if (label != null)
+    if (label != null) {
       description.add(' with label: $label');
-    if (value != null)
+    }
+    if (attributedLabel != null) {
+      description.add(' with attributedLabel: $attributedLabel');
+    }
+    if (value != null) {
       description.add(' with value: $value');
-    if (hint != null)
+    }
+    if (attributedValue != null) {
+      description.add(' with attributedValue: $attributedValue');
+    }
+    if (hint != null) {
       description.add(' with hint: $hint');
-    if (increasedValue != null)
+    }
+    if (attributedHint != null) {
+      description.add(' with attributedHint: $attributedHint');
+    }
+    if (increasedValue != null) {
       description.add(' with increasedValue: $increasedValue ');
-    if (decreasedValue != null)
+    }
+    if (attributedIncreasedValue != null) {
+      description.add(' with attributedIncreasedValue: $attributedIncreasedValue');
+    }
+    if (decreasedValue != null) {
       description.add(' with decreasedValue: $decreasedValue ');
-    if (actions != null)
+    }
+    if (attributedDecreasedValue != null) {
+      description.add(' with attributedDecreasedValue: $attributedDecreasedValue');
+    }
+    if (tooltip != null) {
+      description.add(' with tooltip: $tooltip');
+    }
+    if (actions != null) {
       description.add(' with actions: ').addDescriptionOf(actions);
-    if (flags != null)
+    }
+    if (flags != null) {
       description.add(' with flags: ').addDescriptionOf(flags);
-    if (textDirection != null)
+    }
+    if (textDirection != null) {
       description.add(' with textDirection: $textDirection ');
-    if (rect != null)
+    }
+    if (rect != null) {
       description.add(' with rect: $rect');
-    if (size != null)
+    }
+    if (size != null) {
       description.add(' with size: $size');
-    if (elevation != null)
+    }
+    if (elevation != null) {
       description.add(' with elevation: $elevation');
-    if (thickness != null)
+    }
+    if (thickness != null) {
       description.add(' with thickness: $thickness');
-    if (platformViewId != null)
+    }
+    if (platformViewId != null) {
       description.add(' with platformViewId: $platformViewId');
-    if (maxValueLength != null)
+    }
+    if (maxValueLength != null) {
       description.add(' with maxValueLength: $maxValueLength');
-    if (currentValueLength != null)
+    }
+    if (currentValueLength != null) {
       description.add(' with currentValueLength: $currentValueLength');
-    if (customActions != null)
+    }
+    if (customActions != null) {
       description.add(' with custom actions: $customActions');
-    if (hintOverrides != null)
+    }
+    if (hintOverrides != null) {
       description.add(' with custom hints: $hintOverrides');
+    }
     if (children != null) {
       description.add(' with children:\n');
-      for (final _MatchesSemanticsData child in children!.cast<_MatchesSemanticsData>())
+      for (final _MatchesSemanticsData child in children!.cast<_MatchesSemanticsData>()) {
         child.describe(description);
+      }
     }
     return description;
   }
 
+  bool _stringAttributesEqual(List<StringAttribute> first, List<StringAttribute> second) {
+    if (first.length != second.length) {
+      return false;
+    }
+    for (int i = 0; i < first.length; i++) {
+      if (first[i] is SpellOutStringAttribute &&
+          (second[i] is! SpellOutStringAttribute ||
+           second[i].range != first[i].range)) {
+        return false;
+      }
+      if (first[i] is LocaleStringAttribute &&
+          (second[i] is! LocaleStringAttribute ||
+           second[i].range != first[i].range ||
+           (second[i] as LocaleStringAttribute).locale != (second[i] as LocaleStringAttribute).locale)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   @override
   bool matches(dynamic node, Map<dynamic, dynamic> matchState) {
-    // TODO(jonahwilliams): remove dynamic once we have removed getSemanticsData.
-    if (node == null)
+    if (node == null) {
       return failWithDescription(matchState, 'No SemanticsData provided. '
         'Maybe you forgot to enable semantics?');
+    }
     final SemanticsData data = node is SemanticsNode ? node.getSemanticsData() : (node as SemanticsData);
-    if (label != null && label != data.label)
+    if (label != null && label != data.label) {
       return failWithDescription(matchState, 'label was: ${data.label}');
-    if (hint != null && hint != data.hint)
+    }
+    if (attributedLabel != null &&
+        (attributedLabel!.string != data.attributedLabel.string ||
+         !_stringAttributesEqual(attributedLabel!.attributes, data.attributedLabel.attributes))) {
+      return failWithDescription(
+          matchState, 'attributedLabel was: ${data.attributedLabel}');
+    }
+    if (hint != null && hint != data.hint) {
       return failWithDescription(matchState, 'hint was: ${data.hint}');
-    if (value != null && value != data.value)
+    }
+    if (attributedHint != null &&
+        (attributedHint!.string != data.attributedHint.string ||
+         !_stringAttributesEqual(attributedHint!.attributes, data.attributedHint.attributes))) {
+      return failWithDescription(
+          matchState, 'attributedHint was: ${data.attributedHint}');
+    }
+    if (value != null && value != data.value) {
       return failWithDescription(matchState, 'value was: ${data.value}');
-    if (increasedValue != null && increasedValue != data.increasedValue)
+    }
+    if (attributedValue != null &&
+        (attributedValue!.string != data.attributedValue.string ||
+         !_stringAttributesEqual(attributedValue!.attributes, data.attributedValue.attributes))) {
+      return failWithDescription(
+          matchState, 'attributedValue was: ${data.attributedValue}');
+    }
+    if (increasedValue != null && increasedValue != data.increasedValue) {
       return failWithDescription(matchState, 'increasedValue was: ${data.increasedValue}');
-    if (decreasedValue != null && decreasedValue != data.decreasedValue)
+    }
+    if (attributedIncreasedValue != null &&
+        (attributedIncreasedValue!.string != data.attributedIncreasedValue.string ||
+         !_stringAttributesEqual(attributedIncreasedValue!.attributes, data.attributedIncreasedValue.attributes))) {
+      return failWithDescription(
+          matchState, 'attributedIncreasedValue was: ${data.attributedIncreasedValue}');
+    }
+    if (decreasedValue != null && decreasedValue != data.decreasedValue) {
       return failWithDescription(matchState, 'decreasedValue was: ${data.decreasedValue}');
-    if (textDirection != null && textDirection != data.textDirection)
+    }
+    if (attributedDecreasedValue != null &&
+        (attributedDecreasedValue!.string != data.attributedDecreasedValue.string ||
+         !_stringAttributesEqual(attributedDecreasedValue!.attributes, data.attributedDecreasedValue.attributes))) {
+      return failWithDescription(
+          matchState, 'attributedDecreasedValue was: ${data.attributedDecreasedValue}');
+    }
+    if (tooltip != null && tooltip != data.tooltip) {
+      return failWithDescription(matchState, 'tooltip was: ${data.tooltip}');
+    }
+    if (textDirection != null && textDirection != data.textDirection) {
       return failWithDescription(matchState, 'textDirection was: $textDirection');
-    if (rect != null && rect != data.rect)
+    }
+    if (rect != null && rect != data.rect) {
       return failWithDescription(matchState, 'rect was: ${data.rect}');
-    if (size != null && size != data.rect.size)
+    }
+    if (size != null && size != data.rect.size) {
       return failWithDescription(matchState, 'size was: ${data.rect.size}');
-    if (elevation != null && elevation != data.elevation)
+    }
+    if (elevation != null && elevation != data.elevation) {
       return failWithDescription(matchState, 'elevation was: ${data.elevation}');
-    if (thickness != null && thickness != data.thickness)
+    }
+    if (thickness != null && thickness != data.thickness) {
       return failWithDescription(matchState, 'thickness was: ${data.thickness}');
-    if (platformViewId != null && platformViewId != data.platformViewId)
+    }
+    if (platformViewId != null && platformViewId != data.platformViewId) {
       return failWithDescription(matchState, 'platformViewId was: ${data.platformViewId}');
-    if (currentValueLength != null && currentValueLength != data.currentValueLength)
+    }
+    if (currentValueLength != null && currentValueLength != data.currentValueLength) {
       return failWithDescription(matchState, 'currentValueLength was: ${data.currentValueLength}');
-    if (maxValueLength != null && maxValueLength != data.maxValueLength)
+    }
+    if (maxValueLength != null && maxValueLength != data.maxValueLength) {
       return failWithDescription(matchState, 'maxValueLength was: ${data.maxValueLength}');
+    }
     if (actions != null) {
       int actionBits = 0;
-      for (final SemanticsAction action in actions!)
+      for (final SemanticsAction action in actions!) {
         actionBits |= action.index;
+      }
       if (actionBits != data.actions) {
         final List<String> actionSummary = <String>[
           for (final SemanticsAction action in SemanticsAction.values.values)
@@ -1844,26 +2119,31 @@ class _MatchesSemanticsData extends Matcher {
         return CustomSemanticsAction.getAction(id)!;
       }).toList() ?? <CustomSemanticsAction>[];
       final List<CustomSemanticsAction> expectedCustomActions = customActions?.toList() ?? <CustomSemanticsAction>[];
-      if (hintOverrides?.onTapHint != null)
+      if (hintOverrides?.onTapHint != null) {
         expectedCustomActions.add(CustomSemanticsAction.overridingAction(hint: hintOverrides!.onTapHint!, action: SemanticsAction.tap));
-      if (hintOverrides?.onLongPressHint != null)
+      }
+      if (hintOverrides?.onLongPressHint != null) {
         expectedCustomActions.add(CustomSemanticsAction.overridingAction(hint: hintOverrides!.onLongPressHint!, action: SemanticsAction.longPress));
-      if (expectedCustomActions.length != providedCustomActions.length)
+      }
+      if (expectedCustomActions.length != providedCustomActions.length) {
         return failWithDescription(matchState, 'custom actions where: $providedCustomActions');
+      }
       int sortActions(CustomSemanticsAction left, CustomSemanticsAction right) {
         return CustomSemanticsAction.getIdentifier(left) - CustomSemanticsAction.getIdentifier(right);
       }
       expectedCustomActions.sort(sortActions);
       providedCustomActions.sort(sortActions);
       for (int i = 0; i < expectedCustomActions.length; i++) {
-        if (expectedCustomActions[i] != providedCustomActions[i])
+        if (expectedCustomActions[i] != providedCustomActions[i]) {
           return failWithDescription(matchState, 'custom actions where: $providedCustomActions');
+        }
       }
     }
     if (flags != null) {
       int flagBits = 0;
-      for (final SemanticsFlag flag in flags!)
+      for (final SemanticsFlag flag in flags!) {
         flagBits |= flag.index;
+      }
       if (flagBits != data.flags) {
         final List<String> flagSummary = <String>[
           for (final SemanticsFlag flag in SemanticsFlag.values.values)
@@ -1876,7 +2156,7 @@ class _MatchesSemanticsData extends Matcher {
     bool allMatched = true;
     if (children != null) {
       int i = 0;
-      node.visitChildren((SemanticsNode child) {
+      (node as SemanticsNode).visitChildren((SemanticsNode child) {
         allMatched = children![i].matches(child, matchState) && allMatched;
         i += 1;
         return allMatched;
@@ -1914,8 +2194,9 @@ class _MatchesAccessibilityGuideline extends AsyncMatcher {
   @override
   Future<String?> matchAsync(covariant WidgetTester tester) async {
     final Evaluation result = await guideline.evaluate(tester);
-    if (result.passed)
+    if (result.passed) {
       return null;
+    }
     return result.reason;
   }
 }
@@ -1927,14 +2208,15 @@ class _DoesNotMatchAccessibilityGuideline extends AsyncMatcher {
 
   @override
   Description describe(Description description) {
-    return description.add('Does not ' + guideline.description);
+    return description.add('Does not ${guideline.description}');
   }
 
   @override
   Future<String?> matchAsync(covariant WidgetTester tester) async {
     final Evaluation result = await guideline.evaluate(tester);
-    if (result.passed)
+    if (result.passed) {
       return 'Failed';
+    }
     return null;
   }
 }

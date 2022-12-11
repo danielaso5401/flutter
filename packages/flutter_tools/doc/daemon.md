@@ -10,7 +10,7 @@ flutter daemon
 
 It runs a persistent, JSON-RPC based server to communicate with devices. IDEs and other tools can start the flutter tool in this mode and get device addition and removal notifications, as well as being able to programmatically start and stop apps on those devices.
 
-A set of `flutter daemon` commands/events are also exposed via `flutter run --machine` and `flutter attach --machine` which allow IDEs and tools to launch and attach to flutter applications and interact to send commands like Hot Reload. The command and events that are available in these modes are documented at the bottom of this document.
+A set of `flutter daemon` commands/events are also exposed via `flutter run --machine` and `flutter attach --machine` which allow IDEs and tools to launch and attach to Flutter applications and interact to send commands like Hot Reload. The command and events that are available in these modes are documented at the bottom of this document.
 
 ## Protocol
 
@@ -187,7 +187,7 @@ Return a list of all connected devices. The `params` field will be a List; each 
 `category` is a string description of the kind of workflow the device supports. The current categories are "mobile", "web" and "desktop", or null if none.
 
 `platformType` is a string description of the platform sub-folder the device
-supports. The current catgetories are "android", "ios", "linux", "macos",
+supports. The current categories are "android", "ios", "linux", "macos",
 "fuchsia", "windows", and "web". These are kept in sync with the response from `daemon.getSupportedPlatforms`.
 
 `ephemeral` is a boolean which indicates where the device needs to be manually connected to a development machine. For example, a physical Android device is ephemeral, but the "web" device (that is always present) is not.
@@ -233,6 +233,7 @@ Return a list of all available emulators. The `params` field will be a List; eac
 The `launch()` command allows launching an emulator/simulator by its `id`.
 
 - `emulatorId`: the id of an emulator as returned by `getEmulators`.
+- `coldBoot`: an optional boolean flag which indicates if the emulator should be cold booted. Only supported for android emulators, silently ignored if emulator type is not android.
 
 #### emulator.create
 
@@ -295,6 +296,7 @@ See the [source](https://github.com/flutter/flutter/blob/master/packages/flutter
 
 ## Changelog
 
+- 0.6.1: Added `coldBoot` option to `emulator.lauch` command.
 - 0.6.0: Added `debounce` option to `app.restart` command.
 - 0.5.3: Added `emulatorId` field to device.
 - 0.5.2: Added `platformType` and `category` fields to emulator.

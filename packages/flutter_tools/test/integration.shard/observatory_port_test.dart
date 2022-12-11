@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'dart:async';
 
 import 'package:flutter_tools/src/base/file_system.dart';
@@ -11,7 +9,6 @@ import 'package:flutter_tools/src/base/io.dart';
 import 'package:flutter_tools/src/convert.dart';
 
 import '../src/common.dart';
-import '../src/context.dart';
 import 'test_data/basic_project.dart';
 import 'test_utils.dart';
 
@@ -28,7 +25,7 @@ Future<void> waitForObservatoryMessage(Process process, int port) async {
   process.stdout
     .transform(utf8.decoder)
     .listen((String line) {
-      print(line);
+      printOnFailure(line);
       if (line.contains('An Observatory debugger and profiler on Flutter test device is available at')) {
         if (line.contains('http://127.0.0.1:$port')) {
           completer.complete();
@@ -39,24 +36,24 @@ Future<void> waitForObservatoryMessage(Process process, int port) async {
     });
   process.stderr
     .transform(utf8.decoder)
-    .listen(print);
+    .listen(printOnFailure);
   return completer.future;
 }
 
 void main() {
-  Directory tempDir;
-  final BasicProject _project = BasicProject();
+  late Directory tempDir;
+  final BasicProject project = BasicProject();
 
   setUp(() async {
     tempDir = createResolvedTempDirectorySync('run_test.');
-    await _project.setUpIn(tempDir);
+    await project.setUpIn(tempDir);
   });
 
   tearDown(() async {
     tryToDelete(tempDir);
   });
 
-  testUsingContext('flutter run --observatory-port', () async {
+  testWithoutContext('flutter run --observatory-port', () async {
     final String flutterBin = fileSystem.path.join(getFlutterRoot(), 'bin', 'flutter');
     final int port = await getFreePort();
     // If only --observatory-port is provided, --observatory-port will be used by DDS
@@ -74,7 +71,7 @@ void main() {
     await process.exitCode;
   });
 
-  testUsingContext('flutter run --dds-port --observatory-port', () async {
+  testWithoutContext('flutter run --dds-port --observatory-port', () async {
     final String flutterBin = fileSystem.path.join(getFlutterRoot(), 'bin', 'flutter');
     final int observatoryPort = await getFreePort();
     int ddsPort = await getFreePort();
@@ -97,7 +94,7 @@ void main() {
     await process.exitCode;
   });
 
-  testUsingContext('flutter run --dds-port', () async {
+  testWithoutContext('flutter run --dds-port', () async {
     final String flutterBin = fileSystem.path.join(getFlutterRoot(), 'bin', 'flutter');
     final int ddsPort = await getFreePort();
     // If only --dds-port is provided, --dds-port will be used by DDS and the VM service

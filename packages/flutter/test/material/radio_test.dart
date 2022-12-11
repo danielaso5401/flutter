@@ -2,13 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// This file is run as part of a reduced test set in CI on Mac and Windows
+// machines.
+@Tags(<String>['reduced-test-set'])
+
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 
 import '../rendering/mock_canvas.dart';
 import '../widgets/semantics_tester.dart';
@@ -292,7 +296,7 @@ void main() {
     final Key key = UniqueKey();
     dynamic semanticEvent;
     int? radioValue = 2;
-    SystemChannels.accessibility.setMockMessageHandler((dynamic message) async {
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<dynamic>(SystemChannels.accessibility, (dynamic message) async {
       semanticEvent = message;
     });
 
@@ -319,7 +323,7 @@ void main() {
     expect(object.debugSemantics!.getSemanticsData().hasAction(SemanticsAction.tap), true);
 
     semantics.dispose();
-    SystemChannels.accessibility.setMockMessageHandler(null);
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<dynamic>(SystemChannels.accessibility, null);
   });
 
   testWidgets('Radio ink ripple is displayed correctly', (WidgetTester tester) async {
@@ -388,7 +392,7 @@ void main() {
       Material.of(tester.element(
         find.byWidgetPredicate((Widget widget) => widget is Radio<int>),
       )),
-      paints..circle(color: Colors.orange[500], radius: splashRadius)
+      paints..circle(color: Colors.orange[500], radius: splashRadius),
     );
   });
 
@@ -434,7 +438,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: Colors.orange[500])
         ..circle(color: const Color(0xff1e88e5))
         ..circle(color: const Color(0xff1e88e5)),
@@ -450,9 +455,10 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: Colors.orange[500])
-        ..circle(color: const Color(0x8a000000), style: PaintingStyle.stroke, strokeWidth: 2.0)
+        ..circle(color: const Color(0x8a000000), style: PaintingStyle.stroke, strokeWidth: 2.0),
     );
 
     // Check when the radio is selected, but disabled.
@@ -465,7 +471,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: const Color(0x61000000))
         ..circle(color: const Color(0x61000000)),
     );
@@ -510,14 +517,14 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: const Color(0xff1e88e5))
         ..circle(color: const Color(0xff1e88e5)),
     );
 
     // Start hovering
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    addTearDown(gesture.removePointer);
     await gesture.moveTo(tester.getCenter(find.byKey(radioKey)));
 
     // Check when the radio isn't selected.
@@ -530,7 +537,8 @@ void main() {
         paints
           ..rect(
               color: const Color(0xffffffff),
-              rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+              rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+            )
           ..circle(color: Colors.orange[500])
           ..circle(color: const Color(0x8a000000), style: PaintingStyle.stroke, strokeWidth: 2.0),
     );
@@ -545,7 +553,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: const Color(0x61000000))
         ..circle(color: const Color(0x61000000)),
     );
@@ -694,11 +703,10 @@ void main() {
 
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse, pointer: 1);
     await gesture.addPointer(location: tester.getCenter(find.byKey(key)));
-    addTearDown(gesture.removePointer);
 
     await tester.pump();
 
-    expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.text);
+    expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.text);
 
 
     // Test default cursor
@@ -722,7 +730,7 @@ void main() {
       ),
     );
 
-    expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.click);
+    expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.click);
 
     // Test default cursor when disabled
     await tester.pumpWidget(
@@ -745,7 +753,7 @@ void main() {
       ),
     );
 
-    expect(RendererBinding.instance!.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.basic);
+    expect(RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1), SystemMouseCursors.basic);
   });
 
   testWidgets('Radio button fill color resolves in enabled/disabled states', (WidgetTester tester) async {
@@ -808,7 +816,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: activeEnabledFillColor)
         ..circle(color: activeEnabledFillColor),
     );
@@ -822,8 +831,9 @@ void main() {
         paints
           ..rect(
               color: const Color(0xffffffff),
-              rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
-          ..circle(color: inactiveEnabledFillColor, style: PaintingStyle.stroke, strokeWidth: 2.0)
+              rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+            )
+          ..circle(color: inactiveEnabledFillColor, style: PaintingStyle.stroke, strokeWidth: 2.0),
     );
 
     // Check when the radio is selected, but disabled.
@@ -835,7 +845,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: activeDisabledFillColor)
         ..circle(color: activeDisabledFillColor),
     );
@@ -849,7 +860,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: inactiveDisabledFillColor, style: PaintingStyle.stroke, strokeWidth: 2.0),
     );
   });
@@ -912,7 +924,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: Colors.black12)
         ..circle(color: focusedFillColor),
     );
@@ -920,7 +933,6 @@ void main() {
     // Start hovering
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer();
-    addTearDown(gesture.removePointer);
     await gesture.moveTo(tester.getCenter(find.byKey(radioKey)));
     await tester.pumpAndSettle();
 
@@ -929,7 +941,8 @@ void main() {
       paints
         ..rect(
             color: const Color(0xffffffff),
-            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0))
+            rect: const Rect.fromLTRB(350.0, 250.0, 450.0, 350.0),
+          )
         ..circle(color: Colors.black12)
         ..circle(color: hoveredFillColor),
     );
@@ -964,12 +977,12 @@ void main() {
     }
     const double splashRadius = 24.0;
 
-    Finder _findRadio() {
+    Finder findRadio() {
       return find.byWidgetPredicate((Widget widget) => widget is Radio<bool>);
     }
 
-    MaterialInkController? _getRadioMaterial(WidgetTester tester) {
-      return Material.of(tester.element(_findRadio()));
+    MaterialInkController? getRadioMaterial(WidgetTester tester) {
+      return Material.of(tester.element(findRadio()));
     }
 
     Widget buildRadio({bool active = false, bool focused = false, bool useOverlay = true}) {
@@ -981,7 +994,7 @@ void main() {
             value: active,
             groupValue: true,
             onChanged: (_) { },
-            fillColor: MaterialStateProperty.all(fillColor),
+            fillColor: const MaterialStatePropertyAll<Color>(fillColor),
             overlayColor: useOverlay ? MaterialStateProperty.resolveWith(getOverlayColor) : null,
             hoverColor: hoverColor,
             focusColor: focusColor,
@@ -991,12 +1004,12 @@ void main() {
       );
     }
 
-    await tester.pumpWidget(buildRadio(active: false, useOverlay: false));
-    await tester.press(_findRadio());
+    await tester.pumpWidget(buildRadio(useOverlay: false));
+    await tester.press(findRadio());
     await tester.pumpAndSettle();
 
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: fillColor.withAlpha(kRadialReactionAlpha),
@@ -1006,11 +1019,11 @@ void main() {
     );
 
     await tester.pumpWidget(buildRadio(active: true, useOverlay: false));
-    await tester.press(_findRadio());
+    await tester.press(findRadio());
     await tester.pumpAndSettle();
 
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: fillColor.withAlpha(kRadialReactionAlpha),
@@ -1019,12 +1032,12 @@ void main() {
       reason: 'Default active pressed Radio should have overlay color from fillColor',
     );
 
-    await tester.pumpWidget(buildRadio(active: false));
-    await tester.press(_findRadio());
+    await tester.pumpWidget(buildRadio());
+    await tester.press(findRadio());
     await tester.pumpAndSettle();
 
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: inactivePressedOverlayColor,
@@ -1034,11 +1047,11 @@ void main() {
     );
 
     await tester.pumpWidget(buildRadio(active: true));
-    await tester.press(_findRadio());
+    await tester.press(findRadio());
     await tester.pumpAndSettle();
 
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: activePressedOverlayColor,
@@ -1052,7 +1065,7 @@ void main() {
 
     expect(focusNode.hasPrimaryFocus, isTrue);
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: focusOverlayColor,
@@ -1064,12 +1077,11 @@ void main() {
     // Start hovering
     final TestGesture gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer();
-    addTearDown(gesture.removePointer);
-    await gesture.moveTo(tester.getCenter(_findRadio()));
+    await gesture.moveTo(tester.getCenter(findRadio()));
     await tester.pumpAndSettle();
 
     expect(
-      _getRadioMaterial(tester),
+      getRadioMaterial(tester),
       paints
         ..circle(
           color: hoverOverlayColor,
@@ -1087,7 +1099,7 @@ void main() {
         home: Material(
           child: Center(
             child: show ? Radio<bool>(key: key, value: true, groupValue: false, onChanged: (_) { }) : Container(),
-          )
+          ),
         ),
       );
     }

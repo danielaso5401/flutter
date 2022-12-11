@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:intl/intl.dart' as intl;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' as intl;
 
 void main() {
   late DateTime firstDate;
@@ -14,7 +13,7 @@ void main() {
   late DateTime initialDate;
 
   setUp(() {
-    firstDate = DateTime(2001, DateTime.january, 1);
+    firstDate = DateTime(2001);
     lastDate = DateTime(2031, DateTime.december, 31);
     initialDate = DateTime(2016, DateTime.january, 15);
   });
@@ -141,9 +140,6 @@ void main() {
   testWidgets('textDirection parameter overrides ambient textDirection', (WidgetTester tester) async {
     await tester.pumpWidget(MaterialApp(
       locale: const Locale('en', 'US'),
-      supportedLocales: const <Locale>[
-        Locale('en', 'US'),
-      ],
       home: Material(
         child: Builder(
           builder: (BuildContext context) {
@@ -230,7 +226,7 @@ void main() {
     const Size kCommonScreenSizePortrait = Size(1070, 1770);
     const Size kCommonScreenSizeLandscape = Size(1770, 1070);
 
-    Future<void> _showPicker(WidgetTester tester, Locale locale, Size size) async {
+    Future<void> showPicker(WidgetTester tester, Locale locale, Size size) async {
       tester.binding.window.physicalSizeTestValue = size;
       addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
       tester.binding.window.devicePixelRatioTestValue = 1.0;
@@ -264,22 +260,22 @@ void main() {
 
     // Regression test for https://github.com/flutter/flutter/issues/20171
     testWidgets('common screen size - portrait - Chinese', (WidgetTester tester) async {
-      await _showPicker(tester, const Locale('zh', 'CN'), kCommonScreenSizePortrait);
+      await showPicker(tester, const Locale('zh', 'CN'), kCommonScreenSizePortrait);
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('common screen size - landscape - Chinese', (WidgetTester tester) async {
-      await _showPicker(tester, const Locale('zh', 'CN'), kCommonScreenSizeLandscape);
+      await showPicker(tester, const Locale('zh', 'CN'), kCommonScreenSizeLandscape);
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('common screen size - portrait - Japanese', (WidgetTester tester) async {
-      await _showPicker(tester, const Locale('ja', 'JA'), kCommonScreenSizePortrait);
+      await showPicker(tester, const Locale('ja', 'JA'), kCommonScreenSizePortrait);
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('common screen size - landscape - Japanese', (WidgetTester tester) async {
-      await _showPicker(tester, const Locale('ja', 'JA'), kCommonScreenSizeLandscape);
+      await showPicker(tester, const Locale('ja', 'JA'), kCommonScreenSizeLandscape);
       expect(tester.takeException(), isNull);
     });
   });

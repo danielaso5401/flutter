@@ -21,6 +21,8 @@ import 'test_pointer.dart';
 /// This value must be greater than [kTouchSlop].
 const double kDragSlopDefault = 20.0;
 
+const String _defaultPlatform = kIsWeb ? 'web' : 'android';
+
 /// Class that programmatically interacts with widgets.
 ///
 /// For a variant of this class suited specifically for unit tests, see
@@ -180,8 +182,9 @@ abstract class WidgetController {
 
   T _stateOf<T extends State>(Element element, Finder finder) {
     TestAsyncUtils.guardSync();
-    if (element is StatefulElement)
+    if (element is StatefulElement) {
       return element.state as T;
+    }
     throw StateError('Widget of type ${element.widget.runtimeType}, with ${finder.description}, is not a StatefulWidget.');
   }
 
@@ -528,6 +531,7 @@ abstract class WidgetController {
     double touchSlopX = kDragSlopDefault,
     double touchSlopY = kDragSlopDefault,
     bool warnIfMissed = true,
+    PointerDeviceKind kind = PointerDeviceKind.touch,
   }) {
     return dragFrom(
       getCenter(finder, warnIfMissed: warnIfMissed, callee: 'drag'),
@@ -536,6 +540,7 @@ abstract class WidgetController {
       buttons: buttons,
       touchSlopX: touchSlopX,
       touchSlopY: touchSlopY,
+      kind: kind,
     );
   }
 
@@ -557,10 +562,11 @@ abstract class WidgetController {
     int buttons = kPrimaryButton,
     double touchSlopX = kDragSlopDefault,
     double touchSlopY = kDragSlopDefault,
+    PointerDeviceKind kind = PointerDeviceKind.touch,
   }) {
     assert(kDragSlopDefault > kTouchSlop);
     return TestAsyncUtils.guard<void>(() async {
-      final TestGesture gesture = await startGesture(startLocation, pointer: pointer, buttons: buttons);
+      final TestGesture gesture = await startGesture(startLocation, pointer: pointer, buttons: buttons, kind: kind);
       assert(gesture != null);
 
       final double xSign = offset.dx.sign;
@@ -700,11 +706,9 @@ abstract class WidgetController {
     final List<PointerEventRecord> records = <PointerEventRecord>[
       PointerEventRecord(Duration.zero, <PointerEvent>[
           PointerAddedEvent(
-            timeStamp: Duration.zero,
             position: startLocation,
           ),
           PointerDownEvent(
-            timeStamp: Duration.zero,
             position: startLocation,
             pointer: pointer,
             buttons: buttons,
@@ -719,7 +723,7 @@ abstract class WidgetController {
               delta: offsets[t+1] - offsets[t],
               pointer: pointer,
               buttons: buttons,
-            )
+            ),
           ]),
       ],
       PointerEventRecord(duration, <PointerEvent>[
@@ -731,7 +735,7 @@ abstract class WidgetController {
           // change = PointerChange.up, which translates to PointerUpEvent,
           // doesn't provide the button field.
           // buttons: buttons,
-        )
+        ),
       ]),
     ];
     return TestAsyncUtils.guard<void>(() async {
@@ -777,6 +781,12 @@ abstract class WidgetController {
   ///
   /// You can use [createGesture] if your gesture doesn't begin with an initial
   /// down gesture.
+  ///
+  /// See also:
+  ///  * [WidgetController.drag], a method to simulate a drag.
+  ///  * [WidgetController.timedDrag], a method to simulate the drag of a given widget in a given duration.
+  ///    It sends move events at a given frequency and it is useful when there are listeners involved.
+  ///  * [WidgetController.fling], a method to simulate a fling.
   Future<TestGesture> startGesture(
     Offset downLocation, {
     int? pointer,
@@ -952,8 +962,7 @@ abstract class WidgetController {
           'The hit test result at that offset is: $result\n'
           '${StackTrace.current}'
           'To silence this warning, pass "warnIfMissed: false" to "$callee()".\n'
-          'To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.\n'
-          ''
+          'To make this warning fatal, set WidgetController.hitTestWarningShouldBeFatal to true.\n',
         );
       }
     }
@@ -969,15 +978,27 @@ abstract class WidgetController {
     return box.size;
   }
 
-  /// Simulates sending physical key down and up events through the system channel.
+  /// Simulates sending physical key down and up events.
   ///
   /// This only simulates key events coming from a physical keyboard, not from a
   /// soft keyboard.
   ///
   /// Specify `platform` as one of the platforms allowed in
-  /// [Platform.operatingSystem] to make the event appear to be from that type
-  /// of system. Defaults to "android". Must not be null. Some platforms (e.g.
-  /// Windows, iOS) are not yet supported.
+  /// [platform.Platform.operatingSystem] to make the event appear to be from
+  /// that type of system. Defaults to "web" on web, and "android" everywhere
+  /// else. Must not be null. Some platforms (e.g. Windows, iOS) are not yet
+  /// supported.
+  ///
+  /// Specify the `physicalKey` for the event to override what is included in
+  /// the simulated event. If not specified, it uses a default from the US
+  /// keyboard layout for the corresponding logical `key`.
+  ///
+  /// Specify the `character` for the event to override what is included in the
+  /// simulated event. If not specified, it uses a default derived from the
+  /// logical `key`.
+  ///
+  /// Whether the event is sent through [RawKeyEvent] or [KeyEvent] is
+  /// controlled by [debugKeyEventSimulatorTransitModeOverride].
   ///
   /// Keys that are down when the test completes are cleared after each test.
   ///
@@ -991,23 +1012,40 @@ abstract class WidgetController {
   ///
   ///  - [sendKeyDownEvent] to simulate only a key down event.
   ///  - [sendKeyUpEvent] to simulate only a key up event.
-  Future<bool> sendKeyEvent(LogicalKeyboardKey key, { String platform = 'android' }) async {
+  Future<bool> sendKeyEvent(
+    LogicalKeyboardKey key, {
+    String platform = _defaultPlatform,
+    String? character,
+    PhysicalKeyboardKey? physicalKey
+  }) async {
     assert(platform != null);
-    final bool handled = await simulateKeyDownEvent(key, platform: platform);
+    final bool handled = await simulateKeyDownEvent(key, platform: platform, character: character, physicalKey: physicalKey);
     // Internally wrapped in async guard.
-    await simulateKeyUpEvent(key, platform: platform);
+    await simulateKeyUpEvent(key, platform: platform, physicalKey: physicalKey);
     return handled;
   }
 
-  /// Simulates sending a physical key down event through the system channel.
+  /// Simulates sending a physical key down event.
   ///
   /// This only simulates key down events coming from a physical keyboard, not
   /// from a soft keyboard.
   ///
   /// Specify `platform` as one of the platforms allowed in
-  /// [Platform.operatingSystem] to make the event appear to be from that type
-  /// of system. Defaults to "android". Must not be null. Some platforms (e.g.
-  /// Windows, iOS) are not yet supported.
+  /// [platform.Platform.operatingSystem] to make the event appear to be from
+  /// that type of system. Defaults to "web" on web, and "android" everywhere
+  /// else. Must not be null. Some platforms (e.g. Windows, iOS) are not yet
+  /// supported.
+  ///
+  /// Specify the `physicalKey` for the event to override what is included in
+  /// the simulated event. If not specified, it uses a default from the US
+  /// keyboard layout for the corresponding logical `key`.
+  ///
+  /// Specify the `character` for the event to override what is included in the
+  /// simulated event. If not specified, it uses a default derived from the
+  /// logical `key`.
+  ///
+  /// Whether the event is sent through [RawKeyEvent] or [KeyEvent] is
+  /// controlled by [debugKeyEventSimulatorTransitModeOverride].
   ///
   /// Keys that are down when the test completes are cleared after each test.
   ///
@@ -1015,12 +1053,18 @@ abstract class WidgetController {
   ///
   /// See also:
   ///
-  ///  - [sendKeyUpEvent] to simulate the corresponding key up event.
+  ///  - [sendKeyUpEvent] and [sendKeyRepeatEvent] to simulate the corresponding
+  ///    key up and repeat event.
   ///  - [sendKeyEvent] to simulate both the key up and key down in the same call.
-  Future<bool> sendKeyDownEvent(LogicalKeyboardKey key, { String platform = 'android' }) async {
+  Future<bool> sendKeyDownEvent(
+    LogicalKeyboardKey key, {
+    String platform = _defaultPlatform,
+    String? character,
+    PhysicalKeyboardKey? physicalKey
+  }) async {
     assert(platform != null);
     // Internally wrapped in async guard.
-    return simulateKeyDownEvent(key, platform: platform);
+    return simulateKeyDownEvent(key, platform: platform, character: character, physicalKey: physicalKey);
   }
 
   /// Simulates sending a physical key up event through the system channel.
@@ -1029,24 +1073,79 @@ abstract class WidgetController {
   /// not from a soft keyboard.
   ///
   /// Specify `platform` as one of the platforms allowed in
-  /// [Platform.operatingSystem] to make the event appear to be from that type
-  /// of system. Defaults to "android". May not be null.
+  /// [platform.Platform.operatingSystem] to make the event appear to be from
+  /// that type of system. Defaults to "web" on web, and "android" everywhere
+  /// else. May not be null.
+  ///
+  /// Specify the `physicalKey` for the event to override what is included in
+  /// the simulated event. If not specified, it uses a default from the US
+  /// keyboard layout for the corresponding logical `key`.
+  ///
+  /// Whether the event is sent through [RawKeyEvent] or [KeyEvent] is
+  /// controlled by [debugKeyEventSimulatorTransitModeOverride].
   ///
   /// Returns true if the key event was handled by the framework.
   ///
   /// See also:
   ///
-  ///  - [sendKeyDownEvent] to simulate the corresponding key down event.
+  ///  - [sendKeyDownEvent] and [sendKeyRepeatEvent] to simulate the
+  ///    corresponding key down and repeat event.
   ///  - [sendKeyEvent] to simulate both the key up and key down in the same call.
-  Future<bool> sendKeyUpEvent(LogicalKeyboardKey key, { String platform = 'android' }) async {
+  Future<bool> sendKeyUpEvent(
+      LogicalKeyboardKey key, {
+        String platform = _defaultPlatform,
+        PhysicalKeyboardKey? physicalKey
+      }) async {
     assert(platform != null);
     // Internally wrapped in async guard.
-    return simulateKeyUpEvent(key, platform: platform);
+    return simulateKeyUpEvent(key, platform: platform, physicalKey: physicalKey);
+  }
+
+  /// Simulates sending a key repeat event from a physical keyboard.
+  ///
+  /// This only simulates key repeat events coming from a physical keyboard, not
+  /// from a soft keyboard.
+  ///
+  /// Specify `platform` as one of the platforms allowed in
+  /// [platform.Platform.operatingSystem] to make the event appear to be from that type
+  /// of system. Defaults to "web" on web, and "android" everywhere else. Must not be
+  /// null. Some platforms (e.g. Windows, iOS) are not yet supported.
+  ///
+  /// Specify the `physicalKey` for the event to override what is included in
+  /// the simulated event. If not specified, it uses a default from the US
+  /// keyboard layout for the corresponding logical `key`.
+  ///
+  /// Specify the `character` for the event to override what is included in the
+  /// simulated event. If not specified, it uses a default derived from the
+  /// logical `key`.
+  ///
+  /// Whether the event is sent through [RawKeyEvent] or [KeyEvent] is
+  /// controlled by [debugKeyEventSimulatorTransitModeOverride]. If through [RawKeyEvent],
+  /// this method is equivalent to [sendKeyDownEvent].
+  ///
+  /// Keys that are down when the test completes are cleared after each test.
+  ///
+  /// Returns true if the key event was handled by the framework.
+  ///
+  /// See also:
+  ///
+  ///  - [sendKeyDownEvent] and [sendKeyUpEvent] to simulate the corresponding
+  ///    key down and up event.
+  ///  - [sendKeyEvent] to simulate both the key up and key down in the same call.
+  Future<bool> sendKeyRepeatEvent(
+      LogicalKeyboardKey key, {
+        String platform = _defaultPlatform,
+        String? character,
+        PhysicalKeyboardKey? physicalKey
+      }) async {
+    assert(platform != null);
+    // Internally wrapped in async guard.
+    return simulateKeyRepeatEvent(key, platform: platform, character: character, physicalKey: physicalKey);
   }
 
   /// Returns the rect of the given widget. This is only valid once
   /// the widget's render object has been laid out at least once.
-  Rect getRect(Finder finder) => getTopLeft(finder) & getSize(finder);
+  Rect getRect(Finder finder) => Rect.fromPoints(getTopLeft(finder), getBottomRight(finder));
 
   /// Attempts to find the [SemanticsNode] of first result from `finder`.
   ///
@@ -1063,8 +1162,9 @@ abstract class WidgetController {
   /// Will throw a [StateError] if the finder returns more than one element or
   /// if no semantics are found or are not enabled.
   SemanticsNode getSemantics(Finder finder) {
-    if (binding.pipelineOwner.semanticsOwner == null)
+    if (binding.pipelineOwner.semanticsOwner == null) {
       throw StateError('Semantics are not enabled.');
+    }
     final Iterable<Element> candidates = finder.evaluate();
     if (candidates.isEmpty) {
       throw StateError('Finder returned no matching elements.');
@@ -1079,8 +1179,9 @@ abstract class WidgetController {
       renderObject = renderObject.parent as RenderObject?;
       result = renderObject?.debugSemantics;
     }
-    if (result == null)
+    if (result == null) {
       throw StateError('No Semantics data found.');
+    }
     return result;
   }
 
@@ -1094,36 +1195,42 @@ abstract class WidgetController {
   /// Given a widget `W` specified by [finder] and a [Scrollable] widget `S` in
   /// its ancestry tree, this scrolls `S` so as to make `W` visible.
   ///
-  /// Usually the `finder` for this method should be labeled
-  /// `skipOffstage: false`, so that [Finder] deals with widgets that's out of
-  /// the screen correctly.
+  /// Usually the `finder` for this method should be labeled `skipOffstage:
+  /// false`, so that the [Finder] deals with widgets that are off the screen
+  /// correctly.
   ///
-  /// This does not work when the `S` is long and `W` far away from the
-  /// displayed part does not have a cached element yet. See
-  /// https://github.com/flutter/flutter/issues/61458
+  /// This does not work when `S` is long enough, and `W` far away enough from
+  /// the displayed part of `S`, that `S` has not yet cached `W`'s element.
+  /// Consider using [scrollUntilVisible] in such a situation.
   ///
-  /// Shorthand for `Scrollable.ensureVisible(element(finder))`
+  /// See also:
+  ///
+  ///  * [Scrollable.ensureVisible], which is the production API used to
+  ///    implement this method.
   Future<void> ensureVisible(Finder finder) => Scrollable.ensureVisible(element(finder));
 
   /// Repeatedly scrolls a [Scrollable] by `delta` in the
-  /// [Scrollable.axisDirection] until `finder` is visible.
+  /// [Scrollable.axisDirection] direction until a widget matching `finder` is
+  /// visible.
   ///
-  /// Between each scroll, wait for `duration` time for settling.
+  /// Between each scroll, advances the clock by `duration` time.
   ///
-  /// If `scrollable` is `null`, this will find a [Scrollable].
+  /// Scrolling is performed until the start of the `finder` is visible. This is
+  /// due to the default parameter values of the [Scrollable.ensureVisible] method.
   ///
-  /// Throws a [StateError] if `finder` is not found for maximum `maxScrolls`
-  /// times.
+  /// If `scrollable` is `null`, a [Finder] that looks for a [Scrollable] is
+  /// used instead.
+  ///
+  /// Throws a [StateError] if `finder` is not found after `maxScrolls` scrolls.
   ///
   /// This is different from [ensureVisible] in that this allows looking for
-  /// `finder` that is not built yet, but the caller must specify the scrollable
+  /// `finder` that is not yet built. The caller must specify the scrollable
   /// that will build child specified by `finder` when there are multiple
-  ///[Scrollable]s.
+  /// [Scrollable]s.
   ///
-  /// Scroll is performed until the start of the `finder` is visible. This is
-  /// due to the default parameter values of [Scrollable.ensureVisible] method.
+  /// See also:
   ///
-  /// See also [dragUntilVisible].
+  ///  * [dragUntilVisible], which implements the body of this method.
   Future<void> scrollUntilVisible(
     Finder finder,
     double delta, {
@@ -1155,16 +1262,22 @@ abstract class WidgetController {
         scrollable,
         moveStep,
         maxIteration: maxScrolls,
-        duration: duration);
+        duration: duration,
+      );
     });
   }
 
-  /// Repeatedly drags the `view` by `moveStep` until `finder` is visible.
+  /// Repeatedly drags `view` by `moveStep` until `finder` is visible.
   ///
-  /// Between each operation, wait for `duration` time for settling.
+  /// Between each drag, advances the clock by `duration`.
   ///
-  /// Throws a [StateError] if `finder` is not found for maximum `maxIteration`
-  /// times.
+  /// Throws a [StateError] if `finder` is not found after `maxIteration`
+  /// drags.
+  ///
+  /// See also:
+  ///
+  ///  * [scrollUntilVisible], which wraps this method with an API that is more
+  ///    convenient when dealing with a [Scrollable].
   Future<void> dragUntilVisible(
     Finder finder,
     Finder view,
@@ -1173,10 +1286,10 @@ abstract class WidgetController {
       Duration duration = const Duration(milliseconds: 50),
   }) {
     return TestAsyncUtils.guard<void>(() async {
-      while(maxIteration > 0 && finder.evaluate().isEmpty) {
+      while (maxIteration > 0 && finder.evaluate().isEmpty) {
         await drag(view, moveStep);
         await pump(duration);
-        maxIteration-= 1;
+        maxIteration -= 1;
       }
       await Scrollable.ensureVisible(element(finder));
     });
@@ -1189,12 +1302,13 @@ abstract class WidgetController {
 /// This is used, for instance, by [FlutterDriver].
 class LiveWidgetController extends WidgetController {
   /// Creates a widget controller that uses the given binding.
-  LiveWidgetController(WidgetsBinding binding) : super(binding);
+  LiveWidgetController(super.binding);
 
   @override
   Future<void> pump([Duration? duration]) async {
-    if (duration != null)
+    if (duration != null) {
       await Future<void>.delayed(duration);
+    }
     binding.scheduleFrame();
     await binding.endOfFrame;
   }

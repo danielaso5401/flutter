@@ -11,7 +11,7 @@ void main() {
 }
 
 class FlutterView extends StatelessWidget {
-  const FlutterView({Key? key}) : super(key: key);
+  const FlutterView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +26,10 @@ class FlutterView extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -68,7 +68,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Center(
               child: Text(
                 'Platform button tapped $_counter time${ _counter == 1 ? '' : 's' }.',
-                style: const TextStyle(fontSize: 17.0)),
+                style: const TextStyle(fontSize: 17.0),
+              ),
             ),
           ),
           Container(

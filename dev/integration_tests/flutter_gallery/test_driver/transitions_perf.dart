@@ -4,12 +4,12 @@
 
 import 'dart:convert' show JsonEncoder;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_driver/driver_extension.dart';
-import 'package:flutter_gallery/gallery/demos.dart';
 import 'package:flutter_gallery/demo_lists.dart';
 import 'package:flutter_gallery/gallery/app.dart' show GalleryApp;
+import 'package:flutter_gallery/gallery/demos.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 
 import 'run_demos.dart';
 
@@ -30,12 +30,12 @@ class _MessageHandler {
       case 'demoNames':
         return const JsonEncoder.withIndent('  ').convert(_allDemos);
       case 'profileDemos':
-        controller ??= LiveWidgetController(WidgetsBinding.instance!);
+        controller ??= LiveWidgetController(WidgetsBinding.instance);
         await runDemos(kProfiledDemos, controller!);
         _unTestedDemos.removeAll(kProfiledDemos);
         return const JsonEncoder.withIndent('  ').convert(kProfiledDemos);
       case 'restDemos':
-        controller ??= LiveWidgetController(WidgetsBinding.instance!);
+        controller ??= LiveWidgetController(WidgetsBinding.instance);
         final List<String> restDemos =  _unTestedDemos.toList();
         await runDemos(restDemos, controller!);
         return const JsonEncoder.withIndent('  ').convert(restDemos);

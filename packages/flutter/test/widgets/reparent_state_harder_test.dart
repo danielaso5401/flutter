@@ -9,10 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 class OrderSwitcher extends StatefulWidget {
   const OrderSwitcher({
-    Key? key,
+    super.key,
     required this.a,
     required this.b,
-  }) : super(key: key);
+  });
 
   final Widget a;
   final Widget b;
@@ -62,10 +62,10 @@ class DummyStatefulWidgetState extends State<DummyStatefulWidget> {
 
 class RekeyableDummyStatefulWidgetWrapper extends StatefulWidget {
   const RekeyableDummyStatefulWidgetWrapper({
-    Key? key,
+    super.key,
     this.child,
     required this.initialKey,
-  }) : super(key: key);
+  });
   final Widget? child;
   final GlobalKey initialKey;
   @override
@@ -128,7 +128,7 @@ void main() {
       a: KeyedSubtree(
         key: keyA,
         child: RekeyableDummyStatefulWidgetWrapper(
-          initialKey: keyC
+          initialKey: keyC,
         ),
       ),
       b: KeyedSubtree(
@@ -142,15 +142,15 @@ void main() {
                     return LayoutBuilder(
                       builder: (BuildContext context, BoxConstraints constraints) {
                         return RekeyableDummyStatefulWidgetWrapper(
-                          initialKey: keyD
+                          initialKey: keyD,
                         );
-                      }
+                      },
                     );
-                  }
+                  },
                 );
-              }
+              },
             );
-          }
+          },
         ),
       ),
     ));

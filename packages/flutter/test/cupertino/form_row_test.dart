@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -57,10 +59,7 @@ void main() {
       ),
     );
 
-    expect(
-        tester.getTopLeft(find.byType(Text)).dx >
-            tester.getTopLeft(find.byType(CupertinoTextField)).dx,
-        true);
+    expect(tester.getTopLeft(find.byType(Text)).dx > tester.getTopLeft(find.byType(CupertinoTextField)).dx, true);
   });
 
   testWidgets('LTR puts child after prefix', (WidgetTester tester) async {
@@ -81,10 +80,7 @@ void main() {
       ),
     );
 
-    expect(
-        tester.getTopLeft(find.byType(Text)).dx >
-            tester.getTopLeft(find.byType(CupertinoTextField)).dx,
-        false);
+    expect(tester.getTopLeft(find.byType(Text)).dx > tester.getTopLeft(find.byType(CupertinoTextField)).dx, false);
   });
 
   testWidgets('Shows error widget', (WidgetTester tester) async {
@@ -94,8 +90,8 @@ void main() {
       const CupertinoApp(
         home: Center(
           child: CupertinoFormRow(
-            child: CupertinoTextField(),
             error: error,
+            child: CupertinoTextField(),
           ),
         ),
       ),
@@ -111,8 +107,8 @@ void main() {
       const CupertinoApp(
         home: Center(
           child: CupertinoFormRow(
-            child: CupertinoTextField(),
             helper: helper,
+            child: CupertinoTextField(),
           ),
         ),
       ),
@@ -121,8 +117,7 @@ void main() {
     expect(helper, tester.widget(find.byType(Text)));
   });
 
-  testWidgets('Shows helper text above error text',
-      (WidgetTester tester) async {
+  testWidgets('Shows helper text above error text', (WidgetTester tester) async {
     const Widget helper = Text('Helper');
     const Widget error = CupertinoActivityIndicator();
 
@@ -130,22 +125,21 @@ void main() {
       const CupertinoApp(
         home: Center(
           child: CupertinoFormRow(
-            child: CupertinoTextField(),
             helper: helper,
             error: error,
+            child: CupertinoTextField(),
           ),
         ),
       ),
     );
 
     expect(
-        tester.getTopLeft(find.byType(CupertinoActivityIndicator)).dy >
-            tester.getTopLeft(find.byType(Text)).dy,
-        true);
+      tester.getTopLeft(find.byType(CupertinoActivityIndicator)).dy > tester.getTopLeft(find.byType(Text)).dy,
+      true,
+    );
   });
 
-  testWidgets('Shows helper in label color and error text in red color',
-      (WidgetTester tester) async {
+  testWidgets('Shows helper in label color and error text in red color', (WidgetTester tester) async {
     const Widget helper = Text('Helper');
     const Widget error = Text('Error');
 
@@ -153,9 +147,9 @@ void main() {
       const CupertinoApp(
         home: Center(
           child: CupertinoFormRow(
-            child: CupertinoTextField(),
             helper: helper,
             error: error,
+            child: CupertinoTextField(),
           ),
         ),
       ),
@@ -170,5 +164,45 @@ void main() {
         tester.widget(find.byType(DefaultTextStyle).last);
 
     expect(errorTextStyle.style.color, CupertinoColors.destructiveRed);
+  });
+
+  testWidgets('CupertinoFormRow adapts to MaterialApp dark mode', (WidgetTester tester) async {
+    const Widget prefix = Text('Prefix');
+    const Widget helper = Text('Helper');
+
+    Widget buildFormRow(Brightness brightness) {
+      return MaterialApp(
+        theme: ThemeData(brightness: brightness),
+        home: const Center(
+          child: CupertinoFormRow(
+            prefix: prefix,
+            helper: helper,
+            child: CupertinoTextField(),
+          ),
+        ),
+      );
+    }
+
+    // CupertinoFormRow with light theme.
+    await tester.pumpWidget(buildFormRow(Brightness.light));
+    RenderParagraph helperParagraph = tester.renderObject(find.text('Helper'));
+    expect(helperParagraph.text.style!.color, CupertinoColors.label);
+    // Text style should not return unresolved color.
+    expect(helperParagraph.text.style!.color.toString().contains('UNRESOLVED'), isFalse);
+    RenderParagraph prefixParagraph = tester.renderObject(find.text('Prefix'));
+    expect(prefixParagraph.text.style!.color, CupertinoColors.label);
+    // Text style should not return unresolved color.
+    expect(prefixParagraph.text.style!.color.toString().contains('UNRESOLVED'), isFalse);
+
+    // CupertinoFormRow with light theme.
+    await tester.pumpWidget(buildFormRow(Brightness.dark));
+    helperParagraph = tester.renderObject(find.text('Helper'));
+    expect(helperParagraph.text.style!.color, CupertinoColors.label);
+    // Text style should not return unresolved color.
+    expect(helperParagraph.text.style!.color.toString().contains('UNRESOLVED'), isFalse);
+    prefixParagraph = tester.renderObject(find.text('Prefix'));
+    expect(prefixParagraph.text.style!.color, CupertinoColors.label);
+    // Text style should not return unresolved color.
+    expect(prefixParagraph.text.style!.color.toString().contains('UNRESOLVED'), isFalse);
   });
 }

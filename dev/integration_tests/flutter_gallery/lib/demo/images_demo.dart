@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../gallery/demo.dart';
 
 class ImagesDemo extends StatelessWidget {
-  const ImagesDemo({Key? key}) : super(key: key);
+  const ImagesDemo({super.key});
 
   static const String routeName = '/images';
 
@@ -34,7 +34,7 @@ class ImagesDemo extends StatelessWidget {
           exampleCodeTag: 'animated_image',
           demoWidget: Semantics(
             label: 'Example of animated GIF',
-            child:Image.asset(
+            child: Image.asset(
               'animated_images/animated_flutter_lgtm.gif',
               package: 'flutter_gallery_assets',
             ),

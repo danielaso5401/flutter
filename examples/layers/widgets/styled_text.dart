@@ -55,10 +55,10 @@ Widget toStyledText(String name, String text) {
   );
 }
 
-Widget toPlainText(String name, String text) => Text(name + ':' + text);
+Widget toPlainText(String name, String text) => Text('$name:$text');
 
 class SpeakerSeparator extends StatelessWidget {
-  const SpeakerSeparator({Key? key}) : super(key: key);
+  const SpeakerSeparator({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -67,18 +67,18 @@ class SpeakerSeparator extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 64.0),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color.fromARGB(24, 0, 0, 0))
-        )
+          bottom: BorderSide(color: Color.fromARGB(24, 0, 0, 0)),
+        ),
       ),
     );
   }
 }
 
 class StyledTextDemo extends StatefulWidget {
-  const StyledTextDemo({Key? key}) : super(key: key);
+  const StyledTextDemo({super.key});
 
   @override
-  _StyledTextDemoState createState() => _StyledTextDemoState();
+  State<StyledTextDemo> createState() => _StyledTextDemoState();
 }
 
 class _StyledTextDemoState extends State<StyledTextDemo> {

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/android/gradle_utils.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
@@ -12,13 +10,14 @@ import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/project.dart';
 import '../../src/common.dart';
-import '../../src/context.dart';
+import '../../src/fake_process_manager.dart';
+import '../../src/fakes.dart';
 
 void main() {
    group('injectGradleWrapperIfNeeded', () {
-    MemoryFileSystem fileSystem;
-    Directory gradleWrapperDirectory;
-    GradleUtils gradleUtils;
+    late MemoryFileSystem fileSystem;
+    late Directory gradleWrapperDirectory;
+    late GradleUtils gradleUtils;
 
     setUp(() {
       fileSystem = MemoryFileSystem.test();
@@ -39,7 +38,7 @@ void main() {
       gradleUtils = GradleUtils(
         cache: Cache.test(processManager: FakeProcessManager.any(), fileSystem: fileSystem),
         fileSystem: fileSystem,
-        platform: FakePlatform(environment: <String, String>{}, operatingSystem: 'linux'),
+        platform: FakePlatform(environment: <String, String>{}),
         logger: BufferLogger.test(),
         operatingSystemUtils: FakeOperatingSystemUtils(),
       );
@@ -74,7 +73,7 @@ void main() {
             'distributionPath=wrapper/dists\n'
             'zipStoreBase=GRADLE_USER_HOME\n'
             'zipStorePath=wrapper/dists\n'
-            'distributionUrl=https\\://services.gradle.org/distributions/gradle-6.7-all.zip\n');
+            'distributionUrl=https\\://services.gradle.org/distributions/gradle-7.4-all.zip\n');
     });
 
     testWithoutContext('injects the wrapper when some files are missing', () {
@@ -111,7 +110,7 @@ void main() {
           'distributionPath=wrapper/dists\n'
           'zipStoreBase=GRADLE_USER_HOME\n'
           'zipStorePath=wrapper/dists\n'
-          'distributionUrl=https\\://services.gradle.org/distributions/gradle-6.7-all.zip\n');
+          'distributionUrl=https\\://services.gradle.org/distributions/gradle-7.4-all.zip\n');
     });
 
     testWithoutContext('injects the wrapper and the Gradle version is derivated from the AGP version', () {
@@ -133,7 +132,7 @@ void main() {
       };
 
       for (final MapEntry<String, String> entry in testCases.entries) {
-        final Directory sampleAppAndroid = fileSystem.systemTempDirectory.createTempSync('android');
+        final Directory sampleAppAndroid = fileSystem.systemTempDirectory.createTempSync('flutter_android.');
         sampleAppAndroid
           .childFile('build.gradle')
           .writeAsStringSync('''

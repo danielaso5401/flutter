@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'dart:async';
 import 'dart:io' as io show IOSink, ProcessSignal, Stdout, StdoutException;
 
@@ -12,59 +10,19 @@ import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/io.dart';
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/base/os.dart';
-import 'package:flutter_tools/src/build_info.dart';
-import 'package:flutter_tools/src/build_system/build_system.dart';
-import 'package:flutter_tools/src/bundle.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/convert.dart';
-import 'package:flutter_tools/src/dart/pub.dart';
-import 'package:flutter_tools/src/device.dart';
 import 'package:flutter_tools/src/features.dart';
 import 'package:flutter_tools/src/ios/plist_parser.dart';
 import 'package:flutter_tools/src/version.dart';
 import 'package:test/fake.dart';
-
-/// A fake implementation of the [DeviceLogReader].
-class FakeDeviceLogReader extends DeviceLogReader {
-  @override
-  String get name => 'FakeLogReader';
-
-  StreamController<String> _cachedLinesController;
-
-  final List<String> _lineQueue = <String>[];
-  StreamController<String> get _linesController {
-    _cachedLinesController ??= StreamController<String>
-      .broadcast(onListen: () {
-        _lineQueue.forEach(_linesController.add);
-        _lineQueue.clear();
-     });
-    return _cachedLinesController;
-  }
-
-  @override
-  Stream<String> get logLines => _linesController.stream;
-
-  void addLine(String line) {
-    if (_linesController.hasListener) {
-      _linesController.add(line);
-    } else {
-      _lineQueue.add(line);
-    }
-  }
-
-  @override
-  Future<void> dispose() async {
-    _lineQueue.clear();
-    await _linesController.close();
-  }
-}
 
 /// Environment with DYLD_LIBRARY_PATH=/path/to/libraries
 class FakeDyldEnvironmentArtifact extends ArtifactSet {
   FakeDyldEnvironmentArtifact() : super(DevelopmentArtifact.iOS);
   @override
   Map<String, String> get environment => <String, String>{
-    'DYLD_LIBRARY_PATH': '/path/to/libraries'
+    'DYLD_LIBRARY_PATH': '/path/to/libraries',
   };
 
   @override
@@ -74,7 +32,7 @@ class FakeDyldEnvironmentArtifact extends ArtifactSet {
   String get name => 'fake';
 
   @override
-  Future<void> update(ArtifactUpdater artifactUpdater, Logger logger, FileSystem fileSystem, OperatingSystemUtils operatingSystemUtils) async {
+  Future<void> update(ArtifactUpdater artifactUpdater, Logger logger, FileSystem fileSystem, OperatingSystemUtils operatingSystemUtils, {bool offline = false}) async {
   }
 }
 
@@ -82,8 +40,8 @@ class FakeDyldEnvironmentArtifact extends ArtifactSet {
 class FakeProcess implements Process {
   FakeProcess({
     this.pid = 1,
-    Future<int> exitCode,
-    IOSink stdin,
+    Future<int>? exitCode,
+    IOSink? stdin,
     this.stdout = const Stream<List<int>>.empty(),
     this.stderr = const Stream<List<int>>.empty(),
   }) : exitCode = exitCode ?? Future<int>.value(0),
@@ -108,51 +66,6 @@ class FakeProcess implements Process {
   bool kill([io.ProcessSignal signal = io.ProcessSignal.sigterm]) {
     return true;
   }
-}
-
-/// A process that prompts the user to proceed, then asynchronously writes
-/// some lines to stdout before it exits.
-class PromptingProcess implements Process {
-  PromptingProcess({
-    bool stdinError = false,
-  }) : _stdin = CompleterIOSink(throwOnAdd: stdinError);
-
-  Future<void> showPrompt(String prompt, List<String> outputLines) async {
-    try {
-      _stdoutController.add(utf8.encode(prompt));
-      final List<int> bytesOnStdin = await _stdin.future;
-      // Echo stdin to stdout.
-      _stdoutController.add(bytesOnStdin);
-      if (bytesOnStdin.isNotEmpty && bytesOnStdin[0] == utf8.encode('y')[0]) {
-        for (final String line in outputLines) {
-          _stdoutController.add(utf8.encode('$line\n'));
-        }
-      }
-    } finally {
-      await _stdoutController.close();
-    }
-  }
-
-  final StreamController<List<int>> _stdoutController = StreamController<List<int>>();
-  final CompleterIOSink _stdin;
-
-  @override
-  Stream<List<int>> get stdout => _stdoutController.stream;
-
-  @override
-  Stream<List<int>> get stderr => const Stream<List<int>>.empty();
-
-  @override
-  IOSink get stdin => _stdin;
-
-  @override
-  Future<int> get exitCode async {
-    await _stdoutController.done;
-    return 0;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 /// An IOSink that completes a future with the first line written to it.
@@ -196,7 +109,7 @@ class MemoryIOSink implements IOSink {
   @override
   Future<void> addStream(Stream<List<int>> stream) {
     final Completer<void> completer = Completer<void>();
-    StreamSubscription<List<int>> sub;
+    late StreamSubscription<List<int>> sub;
     sub = stream.listen(
       (List<int> data) {
         try {
@@ -220,12 +133,12 @@ class MemoryIOSink implements IOSink {
   }
 
   @override
-  void write(Object obj) {
+  void write(Object? obj) {
     add(encoding.encode('$obj'));
   }
 
   @override
-  void writeln([ Object obj = '' ]) {
+  void writeln([ Object? obj = '' ]) {
     add(encoding.encode('$obj\n'));
   }
 
@@ -242,7 +155,7 @@ class MemoryIOSink implements IOSink {
   }
 
   @override
-  void addError(dynamic error, [ StackTrace stackTrace ]) {
+  void addError(dynamic error, [ StackTrace? stackTrace ]) {
     throw UnimplementedError();
   }
 
@@ -289,29 +202,29 @@ class MemoryStdout extends MemoryIOSink implements io.Stdout {
   @override
   int get terminalColumns {
     if (_terminalColumns != null) {
-      return _terminalColumns;
+      return _terminalColumns!;
     }
     throw const io.StdoutException('unspecified mock value');
   }
   set terminalColumns(int value) => _terminalColumns = value;
-  int _terminalColumns;
+  int? _terminalColumns;
 
   @override
   int get terminalLines {
     if (_terminalLines != null) {
-      return _terminalLines;
+      return _terminalLines!;
     }
     throw const io.StdoutException('unspecified mock value');
   }
   set terminalLines(int value) => _terminalLines = value;
-  int _terminalLines;
+  int? _terminalLines;
 }
 
 /// A Stdio that collects stdout and supports simulated stdin.
 class FakeStdio extends Stdio {
-  final MemoryStdout _stdout = MemoryStdout();
+  final MemoryStdout _stdout = MemoryStdout()..terminalColumns = 80;
   final MemoryIOSink _stderr = MemoryIOSink();
-  final StreamController<List<int>> _stdin = StreamController<List<int>>();
+  final FakeStdin _stdin = FakeStdin();
 
   @override
   MemoryStdout get stdout => _stdout;
@@ -320,118 +233,73 @@ class FakeStdio extends Stdio {
   MemoryIOSink get stderr => _stderr;
 
   @override
-  Stream<List<int>> get stdin => _stdin.stream;
+  Stream<List<int>> get stdin => _stdin;
 
   void simulateStdin(String line) {
-    _stdin.add(utf8.encode('$line\n'));
+    _stdin.controller.add(utf8.encode('$line\n'));
   }
+
+  @override
+  bool hasTerminal = true;
 
   List<String> get writtenToStdout => _stdout.writes.map<String>(_stdout.encoding.decode).toList();
   List<String> get writtenToStderr => _stderr.writes.map<String>(_stderr.encoding.decode).toList();
 }
 
-class FakePollingDeviceDiscovery extends PollingDeviceDiscovery {
-  FakePollingDeviceDiscovery() : super('mock');
-
-  final List<Device> _devices = <Device>[];
-  final StreamController<Device> _onAddedController = StreamController<Device>.broadcast();
-  final StreamController<Device> _onRemovedController = StreamController<Device>.broadcast();
+class FakeStdin extends Fake implements Stdin {
+  final StreamController<List<int>> controller = StreamController<List<int>>();
 
   @override
-  Future<List<Device>> pollingGetDevices({ Duration timeout }) async {
-    lastPollingTimeout = timeout;
-    return _devices;
-  }
-
-  Duration lastPollingTimeout;
+  bool echoMode = true;
 
   @override
-  bool get supportsPlatform => true;
+  bool echoNewlineMode = true;
 
   @override
-  bool get canListAnything => true;
+  bool lineMode = true;
 
-  void addDevice(Device device) {
-    _devices.add(device);
-    _onAddedController.add(device);
-  }
-
-  void _removeDevice(Device device) {
-    _devices.remove(device);
-    _onRemovedController.add(device);
-  }
-
-  void setDevices(List<Device> devices) {
-    while(_devices.isNotEmpty) {
-      _removeDevice(_devices.first);
-    }
-    devices.forEach(addDevice);
+  @override
+  Stream<S> transform<S>(StreamTransformer<List<int>, S> transformer) {
+    return controller.stream.transform(transformer);
   }
 
   @override
-  Stream<Device> get onAdded => _onAddedController.stream;
-
-  @override
-  Stream<Device> get onRemoved => _onRemovedController.stream;
-}
-
-class LongPollingDeviceDiscovery extends PollingDeviceDiscovery {
-  LongPollingDeviceDiscovery() : super('forever');
-
-  final Completer<List<Device>> _completer = Completer<List<Device>>();
-
-  @override
-  Future<List<Device>> pollingGetDevices({ Duration timeout }) async {
-    return _completer.future;
+  StreamSubscription<List<int>> listen(
+    void Function(List<int> event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return controller.stream.listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
   }
-
-  @override
-  Future<void> stopPolling() async {
-    _completer.complete();
-  }
-
-  @override
-  Future<void> dispose() async {
-    _completer.complete();
-  }
-
-  @override
-  bool get supportsPlatform => true;
-
-  @override
-  bool get canListAnything => true;
-}
-
-class ThrowingPollingDeviceDiscovery extends PollingDeviceDiscovery {
-  ThrowingPollingDeviceDiscovery() : super('throw');
-
-  @override
-  Future<List<Device>> pollingGetDevices({ Duration timeout }) async {
-    throw const ProcessException('fake-discovery', <String>[]);
-  }
-
-  @override
-  bool get supportsPlatform => true;
-
-  @override
-  bool get canListAnything => true;
 }
 
 class FakePlistParser implements PlistParser {
-  final Map<String, dynamic> _underlyingValues = <String, String>{};
+  FakePlistParser([Map<String, Object>? underlyingValues]):
+    _underlyingValues = underlyingValues ?? <String, Object>{};
 
-  void setProperty(String key, dynamic value) {
+  final Map<String, Object> _underlyingValues;
+
+  void setProperty(String key, Object value) {
     _underlyingValues[key] = value;
   }
 
   @override
-  Map<String, dynamic> parseFile(String plistFilePath) {
+  String? plistXmlContent(String plistFilePath) => throw UnimplementedError();
+
+  @override
+  Map<String, Object> parseFile(String plistFilePath) {
     return _underlyingValues;
   }
 
   @override
-  String getValueFromFile(String plistFilePath, String key) {
-    return _underlyingValues[key] as String;
+  String? getStringValueFromFile(String plistFilePath, String key) {
+    return _underlyingValues[key] as String?;
   }
 }
 
@@ -445,24 +313,11 @@ class FakeBotDetector implements BotDetector {
   final bool _isRunningOnBot;
 }
 
-class FakePub extends Fake implements Pub {
-  @override
-  Future<void> get({
-    PubContext context,
-    String directory,
-    bool skipIfAbsent = false,
-    bool upgrade = false,
-    bool offline = false,
-    bool generateSyntheticPackage = false,
-    String flutterRootOverride,
-    bool checkUpToDate = false,
-  }) async { }
-}
-
 class FakeFlutterVersion implements FlutterVersion {
   FakeFlutterVersion({
     this.channel = 'unknown',
     this.dartSdkVersion = '12',
+    this.devToolsVersion = '2.8.0',
     this.engineRevision = 'abcdefghijklmnopqrstuvwxyz',
     this.engineRevisionShort = 'abcde',
     this.repositoryUrl = 'https://github.com/flutter/flutter.git',
@@ -484,6 +339,9 @@ class FakeFlutterVersion implements FlutterVersion {
   final String channel;
 
   @override
+  final String devToolsVersion;
+
+  @override
   final String dartSdkVersion;
 
   @override
@@ -493,7 +351,7 @@ class FakeFlutterVersion implements FlutterVersion {
   final String engineRevisionShort;
 
   @override
-  final String repositoryUrl;
+  final String? repositoryUrl;
 
   @override
   final String frameworkVersion;
@@ -524,11 +382,6 @@ class FakeFlutterVersion implements FlutterVersion {
   @override
   Future<void> checkFlutterVersionFreshness() async {
     _didCheckFlutterVersionFreshness = true;
-  }
-
-  @override
-  bool checkRevisionAncestry({String tentativeDescendantRevision, String tentativeAncestorRevision}) {
-    throw UnimplementedError();
   }
 
   @override
@@ -563,8 +416,6 @@ class TestFeatureFlags implements FeatureFlags {
     this.isIOSEnabled = true,
     this.isFuchsiaEnabled = false,
     this.areCustomDevicesEnabled = false,
-    this.isExperimentalInvalidationStrategyEnabled = false,
-    this.isWindowsUwpEnabled = false,
   });
 
   @override
@@ -595,12 +446,6 @@ class TestFeatureFlags implements FeatureFlags {
   final bool areCustomDevicesEnabled;
 
   @override
-  final bool isExperimentalInvalidationStrategyEnabled;
-
-  @override
-  final bool isWindowsUwpEnabled;
-
-  @override
   bool isEnabled(Feature feature) {
     switch (feature) {
       case flutterWebFeature:
@@ -621,101 +466,101 @@ class TestFeatureFlags implements FeatureFlags {
         return isFuchsiaEnabled;
       case flutterCustomDevicesFeature:
         return areCustomDevicesEnabled;
-      case experimentalInvalidationStrategy:
-        return isExperimentalInvalidationStrategyEnabled;
-      case windowsUwpEmbedding:
-        return isWindowsUwpEnabled;
     }
     return false;
   }
 }
 
-class FakeStatusLogger extends DelegatingLogger {
-  FakeStatusLogger(Logger delegate) : super(delegate);
+class FakeOperatingSystemUtils extends Fake implements OperatingSystemUtils {
+  FakeOperatingSystemUtils({this.hostPlatform = HostPlatform.linux_x64});
 
-  Status status;
+  final List<List<String>> chmods = <List<String>>[];
 
   @override
-  Status startProgress(String message, {Duration timeout, String progressId, bool multilineOutput = false, bool includeTiming = true, int progressIndicatorPadding = kDefaultStatusPadding}) {
-    return status;
+  void makeExecutable(File file) { }
+
+  @override
+  HostPlatform hostPlatform = HostPlatform.linux_x64;
+
+  @override
+  void chmod(FileSystemEntity entity, String mode) {
+    chmods.add(<String>[entity.path, mode]);
   }
+
+  @override
+  File? which(String execName) => null;
+
+  @override
+  List<File> whichAll(String execName) => <File>[];
+
+  @override
+  void unzip(File file, Directory targetDirectory) { }
+
+  @override
+  void unpack(File gzippedTarFile, Directory targetDirectory) { }
+
+  @override
+  Stream<List<int>> gzipLevel1Stream(Stream<List<int>> stream) => stream;
+
+  @override
+  String get name => 'fake OS name and version';
+
+  @override
+  String get pathVarSeparator => ';';
+
+  @override
+  Future<int> findFreePort({bool ipv6 = false}) async => 12345;
 }
 
-class TestBuildSystem implements BuildSystem {
-  /// Create a [BuildSystem] instance that returns the provided results in order.
-  TestBuildSystem.list(this._results, [this._onRun])
-    : _exception = null,
-      _singleResult = null;
-
-  /// Create a [BuildSystem] instance that returns the provided result for every build
-  /// and buildIncremental request.
-  TestBuildSystem.all(this._singleResult, [this._onRun])
-    : _exception = null,
-      _results = <BuildResult>[];
-
-  /// Create a [BuildSystem] instance that always throws the provided error for every build
-  /// and buildIncremental request.
-  TestBuildSystem.error(this._exception)
-    : _singleResult = null,
-      _results = <BuildResult>[],
-      _onRun = null;
-
-  final List<BuildResult> _results;
-  final BuildResult _singleResult;
-  final dynamic _exception;
-  final void Function(Target target, Environment environment) _onRun;
-  int _nextResult = 0;
+class FakeStopwatch implements Stopwatch {
+  @override
+  bool get isRunning => _isRunning;
+  bool _isRunning = false;
 
   @override
-  Future<BuildResult> build(Target target, Environment environment, {BuildSystemConfig buildSystemConfig = const BuildSystemConfig()}) async {
-    if (_onRun != null) {
-      _onRun(target, environment);
-    }
-    if (_exception != null) {
-      throw _exception;
-    }
-    if (_singleResult != null) {
-      return _singleResult;
-    }
-    if (_nextResult >= _results.length) {
-      throw StateError('Unexpected build request of ${target.name}');
-    }
-    return _results[_nextResult++];
+  void start() => _isRunning = true;
+
+  @override
+  void stop() => _isRunning = false;
+
+  @override
+  Duration elapsed = Duration.zero;
+
+  @override
+  int get elapsedMicroseconds => elapsed.inMicroseconds;
+
+  @override
+  int get elapsedMilliseconds => elapsed.inMilliseconds;
+
+  @override
+  int get elapsedTicks => elapsed.inMilliseconds;
+
+  @override
+  int get frequency => 1000;
+
+  @override
+  void reset() {
+    _isRunning = false;
+    elapsed = Duration.zero;
   }
 
   @override
-  Future<BuildResult> buildIncremental(Target target, Environment environment, BuildResult previousBuild) async {
-    if (_onRun != null) {
-      _onRun(target, environment);
-    }
-    if (_exception != null) {
-      throw _exception;
-    }
-    if (_singleResult != null) {
-      return _singleResult;
-    }
-    if (_nextResult >= _results.length) {
-      throw StateError('Unexpected buildIncremental request of ${target.name}');
-    }
-    return _results[_nextResult++];
-  }
+  String toString() => '$runtimeType $elapsed $isRunning';
 }
 
-class FakeBundleBuilder extends Fake implements BundleBuilder {
+class FakeStopwatchFactory implements StopwatchFactory {
+  FakeStopwatchFactory({
+    Stopwatch? stopwatch,
+    Map<String, Stopwatch>? stopwatches
+  }) : stopwatches = <String, Stopwatch>{
+         if (stopwatches != null) ...stopwatches,
+         if (stopwatch != null) '': stopwatch,
+       };
+
+  Map<String, Stopwatch> stopwatches;
+
   @override
-  Future<void> build({
-    TargetPlatform platform,
-    BuildInfo buildInfo,
-    String mainPath,
-    String manifestPath = defaultManifestPath,
-    String applicationKernelFilePath,
-    String depfilePath,
-    String assetDirPath,
-    bool trackWidgetCreation = false,
-    List<String> extraFrontEndOptions = const <String>[],
-    List<String> extraGenSnapshotOptions = const <String>[],
-    List<String> fileSystemRoots,
-    String fileSystemScheme,
-    bool treeShakeIcons
-  }) => Future<void>.value();
+  Stopwatch createStopwatch([String name = '']) {
+    return stopwatches[name] ?? FakeStopwatch();
+  }
 }

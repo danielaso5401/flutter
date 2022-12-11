@@ -47,7 +47,7 @@ class OpacityFlowDelegate extends FlowDelegate {
 
 // OpacityFlowDelegate that paints one of its children twice
 class DuplicatePainterOpacityFlowDelegate extends OpacityFlowDelegate {
-  DuplicatePainterOpacityFlowDelegate(double opacity) : super(opacity);
+  DuplicatePainterOpacityFlowDelegate(super.opacity);
 
   @override
   void paintChildren(FlowPaintingContext context) {
@@ -133,7 +133,7 @@ void main() {
       '   Cannot call paintChild twice for the same child.\n'
       '   The flow delegate of type DuplicatePainterOpacityFlowDelegate\n'
       '   attempted to paint child 0 multiple times, which is not\n'
-      '   permitted.\n'
+      '   permitted.\n',
     ));
   });
 
@@ -147,9 +147,10 @@ void main() {
         ],
       ),
     );
-    ContainerLayer? layer = RendererBinding.instance!.renderView.debugLayer;
-    while (layer != null && layer is! OpacityLayer)
+    ContainerLayer? layer = RendererBinding.instance.renderView.debugLayer;
+    while (layer != null && layer is! OpacityLayer) {
       layer = layer.firstChild as ContainerLayer?;
+    }
     expect(layer, isA<OpacityLayer>());
     final OpacityLayer? opacityLayer = layer as OpacityLayer?;
     expect(opacityLayer!.alpha, equals(opacity * 255));
@@ -175,10 +176,10 @@ void main() {
       await tester.pumpWidget(
         Flow(
           delegate: OpacityFlowDelegate(opacity),
+          clipBehavior: clip,
           children: const <Widget>[
             SizedBox(width: 100.0, height: 100.0),
           ],
-          clipBehavior: clip,
         ),
       );
       expect(renderObject.clipBehavior, clip);
@@ -204,10 +205,10 @@ void main() {
       await tester.pumpWidget(
         Flow.unwrapped(
           delegate: OpacityFlowDelegate(opacity),
+          clipBehavior: clip,
           children: const <Widget>[
             SizedBox(width: 100.0, height: 100.0),
           ],
-          clipBehavior: clip,
         ),
       );
       expect(renderObject.clipBehavior, clip);

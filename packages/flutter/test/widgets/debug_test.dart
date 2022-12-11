@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -15,7 +17,7 @@ void main() {
     ];
     final Widget widget = Flex(
       direction: Axis.vertical,
-      children: children
+      children: children,
     );
     late FlutterError error;
     try {
@@ -33,7 +35,7 @@ void main() {
           '   must have unique keys.\n'
           '   Flex(direction: vertical, mainAxisAlignment: start,\n'
           '   crossAxisAlignment: center) has multiple children with key\n'
-          '   [<\'key\'>].\n',
+          "   [<'key'>].\n",
         ),
       );
     }
@@ -56,7 +58,7 @@ void main() {
         error.toStringDeep(),
         equalsIgnoringHashCodes(
           'FlutterError\n'
-          "   Duplicate key found: [<'key'>].\n"
+          "   Duplicate key found: [<'key'>].\n",
         ),
       );
     }
@@ -84,12 +86,12 @@ void main() {
                 '   The specific widget that could not find a Table ancestor was:\n'
                 '     Builder\n'
                 '   The ownership chain for the affected widget is: "Builder ←\n'
-                '     [root]"\n'
+                '     [root]"\n',
               ),
             );
           }
           return Container();
-        }
+        },
       ),
     );
   });
@@ -115,7 +117,7 @@ void main() {
                 'that was passed to MediaQuery.of(). This can happen because you\n'
                 'have not added a WidgetsApp, CupertinoApp, or MaterialApp widget\n'
                 '(those widgets introduce a MediaQuery), or it can happen if the\n'
-                'context you use comes from a widget above those widgets.\n'
+                'context you use comes from a widget above those widgets.\n',
               ),
             );
             expect(
@@ -133,12 +135,12 @@ void main() {
                 '   that was passed to MediaQuery.of(). This can happen because you\n'
                 '   have not added a WidgetsApp, CupertinoApp, or MaterialApp widget\n'
                 '   (those widgets introduce a MediaQuery), or it can happen if the\n'
-                '   context you use comes from a widget above those widgets.\n'
+                '   context you use comes from a widget above those widgets.\n',
               ),
             );
           }
           return Container();
-        }
+        },
       ),
     );
   });
@@ -159,8 +161,8 @@ void main() {
         error.diagnostics[1].toStringDeep(),
         equalsIgnoringHashCodes(
           'The offending widget is:\n'
-          '  Container\n'
-        )
+          '  Container\n',
+        ),
       );
       expect(error.diagnostics[2].level, DiagnosticLevel.info);
       expect(error.diagnostics[3].level, DiagnosticLevel.hint);
@@ -171,7 +173,7 @@ void main() {
           'available room, return "Container()". To return an empty space\n'
           'that takes as little room as possible, return "Container(width:\n'
           '0.0, height: 0.0)".\n',
-        )
+        ),
       );
       expect(
         error.toStringDeep(),
@@ -184,7 +186,7 @@ void main() {
           '   To return an empty space that causes the building widget to fill\n'
           '   available room, return "Container()". To return an empty space\n'
           '   that takes as little room as possible, return "Container(width:\n'
-          '   0.0, height: 0.0)".\n'
+          '   0.0, height: 0.0)".\n',
         ),
       );
       error = null;
@@ -202,8 +204,8 @@ void main() {
         error.diagnostics[1].toStringDeep(),
         equalsIgnoringHashCodes(
           'The offending widget is:\n'
-          '  Container\n'
-        )
+          '  Container\n',
+        ),
       );
       expect(
         error.toStringDeep(),
@@ -215,7 +217,7 @@ void main() {
           "   Build functions must never return their BuildContext parameter's\n"
           '   widget or a child that contains "context.widget". Doing so\n'
           '   introduces a loop in the widget tree that can cause the app to\n'
-          '   crash.\n'
+          '   crash.\n',
         ),
       );
     }
@@ -239,11 +241,14 @@ void main() {
       ),
     );
 
-    expect(() => debugCheckHasWidgetsLocalizations(noLocalizationsAvailable.currentContext!), throwsA(isAssertionError.having(
-      (AssertionError e) => e.message,
-      'message',
-      contains('No WidgetsLocalizations found'),
-    )));
+    expect(
+      () => debugCheckHasWidgetsLocalizations(noLocalizationsAvailable.currentContext!),
+      throwsA(isAssertionError.having(
+        (AssertionError e) => e.message,
+        'message',
+        contains('No WidgetsLocalizations found'),
+      )),
+    );
 
     expect(debugCheckHasWidgetsLocalizations(localizationsAvailable.currentContext!), isTrue);
   });
@@ -264,5 +269,76 @@ void main() {
         '   The value of a widget debug variable was changed by the test.\n',
       );
     }
+    debugHighlightDeprecatedWidgets = false;
+  });
+
+  testWidgets('debugCreator of layers should not be null', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Material(
+            child: Stack(
+              children: <Widget>[
+                const ColorFiltered(
+                  colorFilter: ColorFilter.mode(Color(0xFFFF0000), BlendMode.color),
+                  child: Placeholder(),
+                ),
+                const Opacity(
+                  opacity: 0.9,
+                  child: Placeholder(),
+                ),
+                ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: const Placeholder(),
+                ),
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: const Placeholder(),
+                ),
+                ShaderMask(
+                  shaderCallback: (Rect bounds) => const RadialGradient(
+                    radius: 0.05,
+                    colors:  <Color>[Color(0xFFFF0000),  Color(0xFF00FF00)],
+                    tileMode: TileMode.mirror,
+                  ).createShader(bounds),
+                  child: const Placeholder(),
+                ),
+                RangeSlider(
+                  values: const RangeValues(0.3, 0.7),
+                  onChanged: (RangeValues newValues) {},
+                ),
+                CompositedTransformFollower(
+                 link: LayerLink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    RenderObject renderObject;
+
+    renderObject = tester.firstRenderObject(find.byType(Opacity));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(ColorFiltered));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(ImageFiltered));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(BackdropFilter));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(ShaderMask));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(RangeSlider));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
+
+    renderObject = tester.firstRenderObject(find.byType(CompositedTransformFollower));
+    expect(renderObject.debugLayer?.debugCreator, isNotNull);
   });
 }

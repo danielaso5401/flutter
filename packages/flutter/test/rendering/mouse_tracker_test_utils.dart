@@ -5,10 +5,11 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart' show TestDefaultBinaryMessengerBinding;
 
 class _TestHitTester extends RenderBox {
   _TestHitTester(this.hitTestOverride);
@@ -24,7 +25,7 @@ class _TestHitTester extends RenderBox {
 // A binding used to test MouseTracker, allowing the test to override hit test
 // searching.
 class TestMouseTrackerFlutterBinding extends BindingBase
-    with SchedulerBinding, ServicesBinding, GestureBinding, SemanticsBinding, RendererBinding {
+    with SchedulerBinding, ServicesBinding, GestureBinding, SemanticsBinding, RendererBinding, TestDefaultBinaryMessengerBinding {
   @override
   void initInstances() {
     super.initInstances();
@@ -69,7 +70,7 @@ class TestMouseTrackerFlutterBinding extends BindingBase
 }
 
 // An object that mocks the behavior of a render object with [MouseTrackerAnnotation].
-class TestAnnotationTarget with Diagnosticable implements MouseTrackerAnnotation, HitTestTarget  {
+class TestAnnotationTarget with Diagnosticable implements MouseTrackerAnnotation, HitTestTarget {
   const TestAnnotationTarget({this.onEnter, this.onHover, this.onExit, this.cursor = MouseCursor.defer, this.validForMouseTracker = true});
 
   @override
@@ -88,16 +89,17 @@ class TestAnnotationTarget with Diagnosticable implements MouseTrackerAnnotation
 
   @override
   void handleEvent(PointerEvent event, HitTestEntry entry) {
-    if (event is PointerHoverEvent)
+    if (event is PointerHoverEvent) {
       onHover?.call(event);
+    }
   }
 }
 
 // A hit test entry that can be assigned with a [TestAnnotationTarget] and an
 // optional transform matrix.
-class TestAnnotationEntry extends HitTestEntry {
-  TestAnnotationEntry(TestAnnotationTarget target, [Matrix4? transform])
-    : transform = transform ?? Matrix4.identity(), super(target);
+class TestAnnotationEntry extends HitTestEntry<TestAnnotationTarget> {
+  TestAnnotationEntry(super.target, [Matrix4? transform])
+    : transform = transform ?? Matrix4.identity();
 
   @override
   final Matrix4 transform;

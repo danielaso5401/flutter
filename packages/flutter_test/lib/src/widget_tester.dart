@@ -59,6 +59,22 @@ export 'package:test_api/test_api.dart' hide
 /// Signature for callback to [testWidgets] and [benchmarkWidgets].
 typedef WidgetTesterCallback = Future<void> Function(WidgetTester widgetTester);
 
+// Return the last element that satisfies `test`, or return null if not found.
+E? _lastWhereOrNull<E>(Iterable<E> list, bool Function(E) test) {
+  late E result;
+  bool foundMatching = false;
+  for (final E element in list) {
+    if (test(element)) {
+      result = element;
+      foundMatching = true;
+    }
+  }
+  if (foundMatching) {
+    return result;
+  }
+  return null;
+}
+
 /// Runs the [callback] inside the Flutter test environment.
 ///
 /// Use this function for testing custom [StatelessWidget]s and
@@ -67,23 +83,13 @@ typedef WidgetTesterCallback = Future<void> Function(WidgetTester widgetTester);
 /// The callback can be asynchronous (using `async`/`await` or
 /// using explicit [Future]s).
 ///
-/// There are two kinds of timeouts that can be specified. The `timeout`
-/// argument specifies the backstop timeout implemented by the `test` package.
-/// If set, it should be relatively large (minutes). It defaults to ten minutes
-/// for tests run by `flutter test`, and is unlimited for tests run by `flutter
-/// run`; specifically, it defaults to
-/// [TestWidgetsFlutterBinding.defaultTestTimeout].
-///
-/// The `initialTimeout` argument specifies the timeout implemented by the
-/// `flutter_test` package itself. If set, it may be relatively small (seconds),
-/// as it is automatically increased for some expensive operations, and can also
-/// be manually increased by calling
-/// [AutomatedTestWidgetsFlutterBinding.addTime]. The effective maximum value of
-/// this timeout (even after calling `addTime`) is the one specified by the
-/// `timeout` argument.
-///
-/// In general, timeouts are race conditions and cause flakes, so best practice
-/// is to avoid the use of timeouts in tests.
+/// The `timeout` argument specifies the backstop timeout implemented by the
+/// `test` package. If set, it should be relatively large (minutes). It defaults
+/// to ten minutes for tests run by `flutter test`, and is unlimited for tests
+/// run by `flutter run`; specifically, it defaults to
+/// [TestWidgetsFlutterBinding.defaultTestTimeout]. (The `initialTimeout`
+/// parameter has no effect. It was previously used with
+/// [TestWidgetsFlutterBinding.addTime] but that feature was removed.)
 ///
 /// If the `semanticsEnabled` parameter is set to `true`,
 /// [WidgetTester.ensureSemantics] will have been called before the tester is
@@ -123,18 +129,28 @@ void testWidgets(
   WidgetTesterCallback callback, {
   bool? skip,
   test_package.Timeout? timeout,
+  @Deprecated(
+    'This parameter has no effect. Use `timeout` instead. '
+    'This feature was deprecated after v2.6.0-1.0.pre.'
+  )
   Duration? initialTimeout,
   bool semanticsEnabled = true,
   TestVariant<Object?> variant = const DefaultTestVariant(),
   dynamic tags,
 }) {
   assert(variant != null);
-  assert(variant.values.isNotEmpty, 'There must be at least on value to test in the testing variant');
-  final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized() as TestWidgetsFlutterBinding;
+  assert(variant.values.isNotEmpty, 'There must be at least one value to test in the testing variant.');
+  final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
   final WidgetTester tester = WidgetTester._(binding);
   for (final dynamic value in variant.values) {
     final String variationDescription = variant.describeValue(value);
-    final String combinedDescription = variationDescription.isNotEmpty ? '$description ($variationDescription)' : description;
+    // IDEs may make assumptions about the format of this suffix in order to
+    // support running tests directly from the editor (where they may have
+    // access to only the test name, provided by the analysis server).
+    // See https://github.com/flutter/flutter/issues/86659.
+    final String combinedDescription = variationDescription.isNotEmpty
+        ? '$description (variant: $variationDescription)'
+        : description;
     test(
       combinedDescription,
       () {
@@ -147,9 +163,8 @@ void testWidgets(
         test_package.addTearDown(binding.postTest);
         return binding.runTest(
           () async {
-            binding.reset();
+            binding.reset(); // TODO(ianh): the binding should just do this itself in _runTest
             debugResetSemanticsIdCounter();
-            tester.resetTestTextInput();
             Object? memento;
             try {
               memento = await variant.setUp(value);
@@ -239,8 +254,11 @@ class TargetPlatformVariant extends TestVariant<TargetPlatform> {
   const TargetPlatformVariant(this.values);
 
   /// Creates a [TargetPlatformVariant] that tests all values from
-  /// the [TargetPlatform] enum.
-  TargetPlatformVariant.all() : values = TargetPlatform.values.toSet();
+  /// the [TargetPlatform] enum. If [excluding] is provided, will test all platforms
+  /// except those in [excluding].
+  TargetPlatformVariant.all({
+    Set<TargetPlatform> excluding = const <TargetPlatform>{},
+  }) : values = TargetPlatform.values.toSet()..removeAll(excluding);
 
   /// Creates a [TargetPlatformVariant] that includes platforms that are
   /// considered desktop platforms.
@@ -373,15 +391,15 @@ const String kDebugWarning = '''
 /// passed to the `callback`, and that handle will automatically be disposed
 /// after the callback is finished.
 ///
-/// Benchmarks must not be run in checked mode, because the performance is not
+/// Benchmarks must not be run in debug mode, because the performance is not
 /// representative. To avoid this, this function will print a big message if it
-/// is run in checked mode. Unit tests of this method pass `mayRunWithAsserts`,
+/// is run in debug mode. Unit tests of this method pass `mayRunWithAsserts`,
 /// but it should not be used for actual benchmarking.
 ///
 /// Example:
 ///
 ///     main() async {
-///       assert(false); // fail in checked mode
+///       assert(false); // fail in debug mode
 ///       await benchmarkWidgets((WidgetTester tester) async {
 ///         await tester.pumpWidget(MyWidget());
 ///         final Stopwatch timer = Stopwatch()..start();
@@ -400,12 +418,13 @@ Future<void> benchmarkWidgets(
   bool semanticsEnabled = false,
 }) {
   assert(() {
-    if (mayRunWithAsserts)
+    if (mayRunWithAsserts) {
       return true;
-    print(kDebugWarning);
+    }
+    debugPrint(kDebugWarning);
     return true;
   }());
-  final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized() as TestWidgetsFlutterBinding;
+  final TestWidgetsFlutterBinding binding = TestWidgetsFlutterBinding.ensureInitialized();
   assert(binding is! AutomatedTestWidgetsFlutterBinding);
   final WidgetTester tester = WidgetTester._(binding);
   SemanticsHandle? semanticsHandle;
@@ -482,11 +501,12 @@ Future<void> expectLater(
 /// Class that programmatically interacts with widgets and the test environment.
 ///
 /// For convenience, instances of this class (such as the one provided by
-/// `testWidget`) can be used as the `vsync` for `AnimationController` objects.
+/// `testWidgets`) can be used as the `vsync` for `AnimationController` objects.
 class WidgetTester extends WidgetController implements HitTestDispatcher, TickerProvider {
-  WidgetTester._(TestWidgetsFlutterBinding binding) : super(binding) {
-    if (binding is LiveTestWidgetsFlutterBinding)
-      binding.deviceEventDispatcher = this;
+  WidgetTester._(super.binding) {
+    if (binding is LiveTestWidgetsFlutterBinding) {
+      (binding as LiveTestWidgetsFlutterBinding).deviceEventDispatcher = this;
+    }
   }
 
   /// The description string of the test currently being run.
@@ -551,7 +571,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
           // Flush all past events
           handleTimeStampDiff.add(-timeDiff);
           for (final PointerEvent event in record.events) {
-            binding.handlePointerEvent(event, source: TestBindingEventSource.test);
+            binding.handlePointerEventForSource(event, source: TestBindingEventSource.test);
           }
         } else {
           await binding.pump();
@@ -560,7 +580,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
             binding.clock.now().difference(startTime) - record.timeDelay,
           );
           for (final PointerEvent event in record.events) {
-            binding.handlePointerEvent(event, source: TestBindingEventSource.test);
+            binding.handlePointerEventForSource(event, source: TestBindingEventSource.test);
           }
         }
       }
@@ -606,7 +626,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
     assert(() {
       final TestWidgetsFlutterBinding widgetsBinding = binding;
       return widgetsBinding is LiveTestWidgetsFlutterBinding &&
-              widgetsBinding.framePolicy == LiveTestWidgetsFlutterBindingFramePolicy.benchmark;
+             widgetsBinding.framePolicy == LiveTestWidgetsFlutterBindingFramePolicy.benchmark;
     }());
 
     dynamic caughtException;
@@ -618,7 +638,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
     await idle();
 
     if (caughtException != null) {
-      throw caughtException as Object;
+      throw caughtException as Object; // ignore: only_throw_errors, rethrowing caught exception.
     }
   }
 
@@ -636,10 +656,12 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
       final WidgetsBinding binding = this.binding;
       if (binding is LiveTestWidgetsFlutterBinding &&
           binding.framePolicy == LiveTestWidgetsFlutterBindingFramePolicy.benchmark) {
-        throw 'When using LiveTestWidgetsFlutterBindingFramePolicy.benchmark, '
-              'hasScheduledFrame is never set to true. This means that pumpAndSettle() '
-              'cannot be used, because it has no way to know if the application has '
-              'stopped registering new frames.';
+        test_package.fail(
+          'When using LiveTestWidgetsFlutterBindingFramePolicy.benchmark, '
+          'hasScheduledFrame is never set to true. This means that pumpAndSettle() '
+          'cannot be used, because it has no way to know if the application has '
+          'stopped registering new frames.',
+        );
       }
       return true;
     }());
@@ -647,8 +669,9 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
       final DateTime endTime = binding.clock.fromNowBy(timeout);
       int count = 0;
       do {
-        if (binding.clock.now().isAfter(endTime))
+        if (binding.clock.now().isAfter(endTime)) {
           throw FlutterError('pumpAndSettle timed out');
+        }
         await binding.pump(duration, phase);
         count += 1;
       } while (binding.hasScheduledFrame);
@@ -693,7 +716,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
       'therefore no restoration data has been collected to restore from. Did you forget to wrap '
       'your widget tree in a RootRestorationScope?',
     );
-    final Widget widget = (binding.renderViewElement! as RenderObjectToWidgetElement<RenderObject>).widget.child!;
+    final Widget widget = ((binding.renderViewElement! as RenderObjectToWidgetElement<RenderObject>).widget as RenderObjectToWidgetAdapter<RenderObject>).child!;
     final TestRestorationData restorationData = binding.restorationManager.restorationData;
     runApp(Container(key: UniqueKey()));
     await pump();
@@ -763,7 +786,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
     Duration additionalTime = const Duration(milliseconds: 1000),
   }) => binding.runAsync<T?>(callback, additionalTime: additionalTime);
 
-  /// Whether there are any any transient callbacks scheduled.
+  /// Whether there are any transient callbacks scheduled.
   ///
   /// This essentially checks whether all animations have completed.
   ///
@@ -789,7 +812,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
   @override
   Future<void> sendEventToBinding(PointerEvent event) {
     return TestAsyncUtils.guard<void>(() async {
-      binding.handlePointerEvent(event, source: TestBindingEventSource.test);
+      binding.handlePointerEventForSource(event, source: TestBindingEventSource.test);
     });
   }
 
@@ -801,15 +824,12 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
         .map((HitTestEntry candidate) => candidate.target)
         .whereType<RenderObject>()
         .first;
-      final Element? innerTargetElement = collectAllElementsFrom(
-        binding.renderViewElement!,
-        skipOffstage: true,
-      ).cast<Element?>().lastWhere(
-        (Element? element) => element!.renderObject == innerTarget,
-        orElse: () => null,
+      final Element? innerTargetElement = _lastWhereOrNull(
+        collectAllElementsFrom(binding.renderViewElement!, skipOffstage: true),
+        (Element element) => element.renderObject == innerTarget,
       );
       if (innerTargetElement == null) {
-        printToConsole('No widgets found at ${binding.globalToLocal(event.position)}.');
+        printToConsole('No widgets found at ${event.position}.');
         return;
       }
       final List<Element> candidates = <Element>[];
@@ -822,17 +842,19 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
       int numberOfWithTexts = 0;
       int numberOfTypes = 0;
       int totalNumber = 0;
-      printToConsole('Some possible finders for the widgets at ${binding.globalToLocal(event.position)}:');
+      printToConsole('Some possible finders for the widgets at ${event.position}:');
       for (final Element element in candidates) {
-        if (totalNumber > 13) // an arbitrary number of finders that feels useful without being overwhelming
+        if (totalNumber > 13) {
           break;
+        }
         totalNumber += 1; // optimistically assume we'll be able to describe it
 
         final Widget widget = element.widget;
         if (widget is Tooltip) {
-          final Iterable<Element> matches = find.byTooltip(widget.message).evaluate();
+          final String message = widget.message ?? widget.richMessage!.toPlainText();
+          final Iterable<Element> matches = find.byTooltip(message).evaluate();
           if (matches.length == 1) {
-            printToConsole("  find.byTooltip('${widget.message}')");
+            printToConsole("  find.byTooltip('$message')");
             continue;
           }
         }
@@ -898,8 +920,9 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
 
         totalNumber -= 1; // if we got here, we didn't actually find something to say about it
       }
-      if (totalNumber == 0)
+      if (totalNumber == 0) {
         printToConsole('  <could not come up with any unique finders>');
+      }
     }
   }
 
@@ -918,10 +941,12 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
   /// Acts as if the application went idle.
   ///
   /// Runs all remaining microtasks, including those scheduled as a result of
-  /// running them, until there are no more microtasks scheduled.
+  /// running them, until there are no more microtasks scheduled. Then, runs any
+  /// previously scheduled timers with zero time, and completes the returned future.
   ///
-  /// Does not run timers. May result in an infinite loop or run out of memory
-  /// if microtasks continue to recursively schedule new microtasks.
+  /// May result in an infinite loop or run out of memory if microtasks continue
+  /// to recursively schedule new microtasks. Will not run any timers scheduled
+  /// after this method was invoked, even if they are zero-time timers.
   Future<void> idle() {
     return TestAsyncUtils.guard<void>(() => binding.idle());
   }
@@ -961,7 +986,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
               'should be disposed by calling dispose() on the AnimationController itself. '
               'Otherwise, the ticker will leak.'
             ),
-            ticker.describeForError('The offending ticker was')
+            ticker.describeForError('The offending ticker was'),
           ]);
         }
       }
@@ -986,7 +1011,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
           'If your test uses SemanticsTester, it is '
           'sufficient to call dispose() on SemanticsTester. Otherwise, the '
           'existing handle will leak into another test and alter its behavior.'
-        )
+        ),
       ]);
     }
     _lastRecordedSemanticsHandles = null;
@@ -1002,18 +1027,13 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
   ///
   /// Typical app tests will not need to use this value. To add text to widgets
   /// like [TextField] or [TextFormField], call [enterText].
-  TestTextInput get testTextInput => binding.testTextInput;
-
-  /// Ensures that [testTextInput] is registered and [TestTextInput.log] is
-  /// reset.
   ///
-  /// This is called by the testing framework before test runs, so that if a
-  /// previous test has set its own handler on [SystemChannels.textInput], the
-  /// [testTextInput] regains control and the log is fresh for the new test.
-  /// It should not typically need to be called by tests.
-  void resetTestTextInput() {
-    testTextInput.resetAndRegister();
-  }
+  /// Some of the properties and methods on this value are only valid if the
+  /// binding's [TestWidgetsFlutterBinding.registerTestTextInput] flag is set to
+  /// true as a test is starting (meaning that the keyboard is to be simulated
+  /// by the test framework). If those members are accessed when using a binding
+  /// that sets this flag to false, they will throw.
+  TestTextInput get testTextInput => binding.testTextInput;
 
   /// Give the text input widget specified by [finder] the focus, as if the
   /// onscreen keyboard had appeared.
@@ -1035,6 +1055,9 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
           matchRoot: true,
         ),
       );
+      // Setting focusedEditable causes the binding to call requestKeyboard()
+      // on the EditableTextState, which itself eventually calls TextInput.attach
+      // to establish the connection.
       binding.focusedEditable = editable;
       await pump();
     });
@@ -1052,6 +1075,12 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
   ///
   /// To just give [finder] the focus without entering any text,
   /// see [showKeyboard].
+  ///
+  /// To enter text into other widgets (e.g. a custom widget that maintains a
+  /// TextInputConnection the way that a [EditableText] does), first ensure that
+  /// that widget has an open connection (e.g. by using [tap] to to focus it),
+  /// then call `testTextInput.enterText` directly (see
+  /// [TestTextInput.enterText]).
   Future<void> enterText(Finder finder, String text) async {
     return TestAsyncUtils.guard<void>(() async {
       await showKeyboard(finder);
@@ -1086,7 +1115,7 @@ class WidgetTester extends WidgetController implements HitTestDispatcher, Ticker
 typedef _TickerDisposeCallback = void Function(_TestTicker ticker);
 
 class _TestTicker extends Ticker {
-  _TestTicker(TickerCallback onTick, this._onDispose) : super(onTick);
+  _TestTicker(super.onTick, this._onDispose);
 
   final _TickerDisposeCallback _onDispose;
 

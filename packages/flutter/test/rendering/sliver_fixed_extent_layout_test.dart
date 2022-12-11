@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'rendering_tester.dart';
 
 void main() {
+  TestRenderingFlutterBinding.ensureInitialized();
+
   test('RenderSliverFixedExtentList layout test - rounding error', () {
     final List<RenderBox> children = <RenderBox>[
       RenderSizedBox(const Size(400.0, 100.0)),
@@ -18,7 +20,6 @@ void main() {
       children: children,
     );
     final RenderViewport root = RenderViewport(
-      axisDirection: AxisDirection.down,
       crossAxisDirection: AxisDirection.right,
       offset: ViewportOffset.zero(),
       cacheExtent: 0,
@@ -46,8 +47,8 @@ void main() {
     // Regression test for https://github.com/flutter/flutter/issues/68182
 
     const double genericItemExtent = 600.0;
-    const double extraValueToNotHaveRoundingIssues = 0.0000001; // 6 zeros
-    const double extraValueToHaveRoundingIssues = 0.00000001; // 7 zeros
+    const double extraValueToNotHaveRoundingIssues = 1e-10;
+    const double extraValueToHaveRoundingIssues = 1e-11;
 
     test('should be 0 when item extent is 0', () {
       const double offsetValueWhichDoesntCare = 1234;
@@ -66,43 +67,86 @@ void main() {
     });
 
     test('should be 1 when offset is greater than item extent', () {
-      final int actual = testGetMaxChildIndexForScrollOffset(
-        genericItemExtent + 1, genericItemExtent);
+      final int actual = testGetMaxChildIndexForScrollOffset(genericItemExtent + 1, genericItemExtent);
       expect(actual, 1);
     });
 
     test('should be 1 when offset is slightly greater than item extent', () {
       final int actual = testGetMaxChildIndexForScrollOffset(
-        genericItemExtent + extraValueToNotHaveRoundingIssues, genericItemExtent);
+        genericItemExtent + extraValueToNotHaveRoundingIssues,
+        genericItemExtent,
+      );
       expect(actual, 1);
     });
 
     test('should be 4 when offset is four times and a half greater than item extent', () {
-      final int actual = testGetMaxChildIndexForScrollOffset(
-        genericItemExtent * 4.5, genericItemExtent);
+      final int actual = testGetMaxChildIndexForScrollOffset(genericItemExtent * 4.5, genericItemExtent);
       expect(actual, 4);
     });
 
     test('should be 5 when offset is 6 times greater than item extent', () {
       const double anotherGenericItemExtent = 414.0;
       final int actual = testGetMaxChildIndexForScrollOffset(
-        anotherGenericItemExtent * 6, anotherGenericItemExtent);
+        anotherGenericItemExtent * 6,
+        anotherGenericItemExtent,
+      );
       expect(actual, 5);
     });
 
-    test('should be 5 when offset is 6 times greater than a specific item extent where the division will return more than 13 zero decimals', () {
-      const double itemExtentSpecificForAProblematicSreenSize = 411.42857142857144;
+    test('should be 5 when offset is 6 times greater than a specific item extent where the division will return more than 13 zero decimals', () {
+      const double itemExtentSpecificForAProblematicScreenSize = 411.42857142857144;
       final int actual = testGetMaxChildIndexForScrollOffset(
-          itemExtentSpecificForAProblematicSreenSize * 6 + extraValueToHaveRoundingIssues,
-          itemExtentSpecificForAProblematicSreenSize);
+        itemExtentSpecificForAProblematicScreenSize * 6 + extraValueToHaveRoundingIssues,
+        itemExtentSpecificForAProblematicScreenSize,
+      );
       expect(actual, 5);
     });
 
-    test('should be 0 when offset is 0.00000001 times greater than item extent where the division will return more than 13 zero decimals', () {
+    test('should be 0 when offset is a bit greater than item extent', () {
       final int actual = testGetMaxChildIndexForScrollOffset(
-        genericItemExtent + extraValueToHaveRoundingIssues, genericItemExtent);
+        genericItemExtent + extraValueToHaveRoundingIssues,
+        genericItemExtent,
+      );
       expect(actual, 0);
     });
+  });
+
+  test('Implements paintsChild correctly', () {
+    final List<RenderBox> children = <RenderBox>[
+      RenderSizedBox(const Size(400.0, 100.0)),
+      RenderSizedBox(const Size(400.0, 100.0)),
+      RenderSizedBox(const Size(400.0, 100.0)),
+    ];
+    final TestRenderSliverBoxChildManager childManager = TestRenderSliverBoxChildManager(
+      children: children,
+    );
+    final RenderViewport root = RenderViewport(
+      crossAxisDirection: AxisDirection.right,
+      offset: ViewportOffset.zero(),
+      cacheExtent: 0,
+      children: <RenderSliver>[
+        childManager.createRenderSliverFillViewport(),
+      ],
+    );
+    layout(root);
+    expect(children.first.parent, isA<RenderSliverMultiBoxAdaptor>());
+
+    final RenderSliverMultiBoxAdaptor parent = children.first.parent! as RenderSliverMultiBoxAdaptor;
+    expect(parent.paintsChild(children[0]), true);
+    expect(parent.paintsChild(children[1]), false);
+    expect(parent.paintsChild(children[2]), false);
+
+    root.offset = ViewportOffset.fixed(600);
+    pumpFrame();
+    expect(parent.paintsChild(children[0]), false);
+    expect(parent.paintsChild(children[1]), true);
+    expect(parent.paintsChild(children[2]), false);
+
+    root.offset = ViewportOffset.fixed(1200);
+    pumpFrame();
+    expect(parent.paintsChild(children[0]), false);
+    expect(parent.paintsChild(children[1]), false);
+    expect(parent.paintsChild(children[2]), true);
   });
 }
 
@@ -131,8 +175,9 @@ class TestRenderSliverBoxChildManager extends RenderSliverBoxChildManager {
 
   @override
   void createChild(int index, { required RenderBox? after }) {
-    if (index < 0 || index >= children.length)
+    if (index < 0 || index >= children.length) {
       return;
+    }
     try {
       _currentlyUpdatingChildIndex = index;
       _renderObject!.insert(children[index], after: after);

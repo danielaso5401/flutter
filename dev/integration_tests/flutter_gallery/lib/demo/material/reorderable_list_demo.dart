@@ -18,12 +18,12 @@ enum _ReorderableListType {
 }
 
 class ReorderableListDemo extends StatefulWidget {
-  const ReorderableListDemo({ Key? key }) : super(key: key);
+  const ReorderableListDemo({ super.key });
 
   static const String routeName = '/material/reorderable-list';
 
   @override
-  _ListDemoState createState() => _ListDemoState();
+  State<ReorderableListDemo> createState() => _ListDemoState();
 }
 
 class _ListItem {
@@ -150,12 +150,13 @@ class _ListDemoState extends State<ReorderableListDemo> {
           key: Key(item.value),
           height: 100.0,
           width: 100.0,
-          child: CircleAvatar(child: Text(item.value),
+          child: CircleAvatar(
             backgroundColor: Colors.green,
+            child: Text(item.value),
           ),
         );
         break;
-      default:
+      case null:
         listTile = Container(
           key: Key(item.value),
         );
@@ -207,6 +208,7 @@ class _ListDemoState extends State<ReorderableListDemo> {
       ),
       body: Scrollbar(
         child: ReorderableListView(
+          primary: true,
           header: _itemType != _ReorderableListType.threeLine
               ? Padding(
                   padding: const EdgeInsets.all(8.0),

@@ -6,45 +6,18 @@
 
 import 'dart:async';
 
-import 'package:flutter_tools/src/base/common.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_tools/src/base/io.dart' as io;
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/convert.dart';
+import 'package:flutter_tools/src/device.dart';
+import 'package:flutter_tools/src/vmservice.dart';
 import 'package:test/fake.dart';
 import 'package:vm_service/vm_service.dart' as vm_service;
-import 'package:flutter_tools/src/device.dart';
-import 'package:flutter_tools/src/version.dart';
-import 'package:flutter_tools/src/vmservice.dart';
-import 'package:fake_async/fake_async.dart';
 
 import '../src/common.dart';
 import '../src/context.dart' hide testLogger;
 import '../src/fake_vm_services.dart';
-
-final Map<String, Object> vm = <String, dynamic>{
-  'type': 'VM',
-  'name': 'vm',
-  'architectureBits': 64,
-  'targetCPU': 'x64',
-  'hostCPU': '      Intel(R) Xeon(R) CPU    E5-1650 v2 @ 3.50GHz',
-  'version': '2.1.0-dev.7.1.flutter-45f9462398 (Fri Oct 19 19:27:56 2018 +0000) on "linux_x64"',
-  '_profilerMode': 'Dart',
-  '_nativeZoneMemoryUsage': 0,
-  'pid': 103707,
-  'startTime': 1540426121876,
-  '_embedder': 'Flutter',
-  '_maxRSS': 312614912,
-  '_currentRSS': 33091584,
-  'isolates': <dynamic>[
-    <String, dynamic>{
-      'type': '@Isolate',
-      'fixedId': true,
-      'id': 'isolates/242098474',
-      'name': 'main.dart:main()',
-      'number': 242098474,
-    },
-  ],
-};
 
 const String kExtensionName = 'ext.flutter.test.interestingExtension';
 
@@ -87,8 +60,6 @@ final FakeVmServiceRequest listViewsRequest = FakeVmServiceRequest(
     ],
   },
 );
-
-typedef ServiceCallback = Future<Map<String, dynamic>> Function(Map<String, Object>);
 
 void main() {
   testWithoutContext('VmService registers reloadSources', () async {
@@ -254,7 +225,7 @@ void main() {
         containsPair('viewId', 'abc'),
         containsPair('assetDirectory', '/abc'),
         containsPair('isolateId', 'def'),
-      ]))
+      ])),
     ]));
   });
 
@@ -276,7 +247,7 @@ void main() {
       containsPair('method', kGetSkSLsMethod),
       containsPair('params', allOf(<Matcher>[
         containsPair('viewId', 'abc'),
-      ]))
+      ])),
     ]));
   });
 
@@ -298,7 +269,7 @@ void main() {
       containsPair('method', kFlushUIThreadTasksMethod),
       containsPair('params', allOf(<Matcher>[
         containsPair('isolateId', 'def'),
-      ]))
+      ])),
     ]));
   });
 
@@ -306,7 +277,7 @@ void main() {
     final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
       requests: <VmServiceExpectation>[
         const FakeVmServiceRequest(method: 'streamListen', args: <String, Object>{
-          'streamId': 'Isolate'
+          'streamId': 'Isolate',
         }),
         const FakeVmServiceRequest(method: kRunInViewMethod, args: <String, Object>{
           'viewId': '1234',
@@ -328,6 +299,101 @@ void main() {
       main: Uri.file('main.dart'),
       assetsDirectory: Uri.file('flutter_assets/'),
     );
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('flutterDebugDumpSemanticsTreeInTraversalOrder handles missing method', () async {
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(
+          method: 'ext.flutter.debugDumpSemanticsTreeInTraversalOrder',
+          args: <String, Object>{
+            'isolateId': '1',
+          },
+          errorCode: RPCErrorCodes.kMethodNotFound,
+        ),
+      ]
+    );
+
+    expect(await fakeVmServiceHost.vmService.flutterDebugDumpSemanticsTreeInTraversalOrder(
+      isolateId: '1',
+    ), '');
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('flutterDebugDumpSemanticsTreeInInverseHitTestOrder handles missing method', () async {
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(
+          method: 'ext.flutter.debugDumpSemanticsTreeInInverseHitTestOrder',
+          args: <String, Object>{
+            'isolateId': '1',
+          },
+          errorCode: RPCErrorCodes.kMethodNotFound,
+        ),
+      ]
+    );
+
+    expect(await fakeVmServiceHost.vmService.flutterDebugDumpSemanticsTreeInInverseHitTestOrder(
+      isolateId: '1',
+    ), '');
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('flutterDebugDumpLayerTree handles missing method', () async {
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(
+          method: 'ext.flutter.debugDumpLayerTree',
+          args: <String, Object>{
+            'isolateId': '1',
+          },
+          errorCode: RPCErrorCodes.kMethodNotFound,
+        ),
+      ]
+    );
+
+    expect(await fakeVmServiceHost.vmService.flutterDebugDumpLayerTree(
+      isolateId: '1',
+    ), '');
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('flutterDebugDumpRenderTree handles missing method', () async {
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(
+          method: 'ext.flutter.debugDumpRenderTree',
+          args: <String, Object>{
+            'isolateId': '1',
+          },
+          errorCode: RPCErrorCodes.kMethodNotFound,
+        ),
+      ]
+    );
+
+    expect(await fakeVmServiceHost.vmService.flutterDebugDumpRenderTree(
+      isolateId: '1',
+    ), '');
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('flutterDebugDumpApp handles missing method', () async {
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(
+          method: 'ext.flutter.debugDumpApp',
+          args: <String, Object>{
+            'isolateId': '1',
+          },
+          errorCode: RPCErrorCodes.kMethodNotFound,
+        ),
+      ]
+    );
+
+    expect(await fakeVmServiceHost.vmService.flutterDebugDumpApp(
+      isolateId: '1',
+    ), '');
     expect(fakeVmServiceHost.hasRemainingExpectations, false);
   });
 
@@ -364,6 +430,14 @@ void main() {
           method: 'getVMTimeline',
           errorCode: RPCErrorCodes.kServiceDisappeared,
         ),
+        const FakeVmServiceRequest(
+          method: kRenderFrameWithRasterStatsMethod,
+          args: <String, dynamic>{
+            'viewId': '1',
+            'isolateId': '12',
+          },
+          errorCode: RPCErrorCodes.kServiceDisappeared,
+        ),
       ]
     );
 
@@ -387,6 +461,10 @@ void main() {
     final vm_service.Response timeline = await fakeVmServiceHost.vmService.getTimeline();
     expect(timeline, isNull);
 
+    final Map<String, Object> rasterStats =
+      await fakeVmServiceHost.vmService.renderFrameWithRasterStats(viewId: '1', uiIsolateId: '12');
+    expect(rasterStats, isNull);
+
     expect(fakeVmServiceHost.hasRemainingExpectations, false);
   });
 
@@ -403,6 +481,35 @@ void main() {
       'isolate/123',
     );
     expect(isolate, null);
+
+    expect(fakeVmServiceHost.hasRemainingExpectations, false);
+  });
+
+  testWithoutContext('renderWithStats forwards stats correctly', () async {
+    // ignore: always_specify_types
+    const Map<String, dynamic> response = {
+      'type': 'RenderFrameWithRasterStats',
+      'snapshots':<dynamic>[
+        // ignore: always_specify_types
+        {
+          'layer_unique_id':1512,
+          'duration_micros':477,
+          'snapshot':'',
+        },
+      ],
+    };
+    final FakeVmServiceHost fakeVmServiceHost = FakeVmServiceHost(
+      requests: <VmServiceExpectation>[
+        const FakeVmServiceRequest(method: kRenderFrameWithRasterStatsMethod, args: <String, Object>{
+          'isolateId': 'isolate/123',
+          'viewId': 'view/1',
+        }, jsonResponse: response),
+      ]
+    );
+
+    final Map<String, Object> rasterStats =
+      await fakeVmServiceHost.vmService.renderFrameWithRasterStats(viewId: 'view/1', uiIsolateId: 'isolate/123');
+    expect(rasterStats, equals(response));
 
     expect(fakeVmServiceHost.hasRemainingExpectations, false);
   });
@@ -602,7 +709,7 @@ void main() {
           args: <String, Object>{
             'streamId': 'Isolate',
           },
-          // Stream already subscribed - https://github.com/dart-lang/sdk/blob/master/runtime/vm/service/service.md#streamlisten
+          // Stream already subscribed - https://github.com/dart-lang/sdk/blob/main/runtime/vm/service/service.md#streamlisten
           errorCode: 103,
         ),
         listViewsRequest,
@@ -740,12 +847,10 @@ class MockVMService extends Fake implements vm_service.VmService {
   }
 }
 
-class FakeDevice extends Fake implements Device {}
-
-class FakeFlutterVersion extends Fake implements FlutterVersion {
-  @override
-  Map<String, Object> toJson() => const <String, Object>{'Fake': 'Version'};
-}
+// Unfortunately Device, despite not being immutable, has an `operator ==`.
+// Until we fix that, we have to also ignore related lints here.
+// ignore: avoid_implementing_value_types
+class FakeDevice extends Fake implements Device { }
 
 /// A [WebSocketConnector] that always throws an [io.SocketException].
 Future<io.WebSocket> failingWebSocketConnector(

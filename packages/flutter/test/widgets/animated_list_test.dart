@@ -2,11 +2,51 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/src/foundation/diagnostics.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Regression test for https://github.com/flutter/flutter/issues/100451
+  testWidgets('SliverAnimatedList.builder respects findChildIndexCallback', (WidgetTester tester) async {
+    bool finderCalled = false;
+    int itemCount = 7;
+    late StateSetter stateSetter;
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            stateSetter = setState;
+            return CustomScrollView(
+              slivers: <Widget>[
+                SliverAnimatedList(
+                  initialItemCount: itemCount,
+                  itemBuilder: (BuildContext context, int index, Animation<double> animation) => Container(
+                    key: Key('$index'),
+                    height: 2000.0,
+                  ),
+                  findChildIndexCallback: (Key key) {
+                    finderCalled = true;
+                    return null;
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      )
+    );
+    expect(finderCalled, false);
+
+    // Trigger update.
+    stateSetter(() => itemCount = 77);
+    await tester.pump();
+
+    expect(finderCalled, true);
+  });
+
   testWidgets('AnimatedList', (WidgetTester tester) async {
     Widget builder(BuildContext context, int index, Animation<double> animation) {
       return SizedBox(
@@ -54,7 +94,7 @@ void main() {
     expect(find.text('removing item'), findsOneWidget);
     expect(find.text('item 2'), findsNothing);
 
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
     expect(find.text('removing item'), findsNothing);
   });
 
@@ -78,7 +118,7 @@ void main() {
                     ),
                   );
                 },
-              )
+              ),
             ],
           ),
         ),
@@ -105,7 +145,6 @@ void main() {
                 itemBuilder: (BuildContext context, int index, Animation<double> animation) {
                   return SizeTransition(
                     key: ValueKey<int>(index),
-                    axis: Axis.vertical,
                     sizeFactor: animation,
                     child: SizedBox(
                       height: 100.0,
@@ -113,7 +152,7 @@ void main() {
                     ),
                   );
                 },
-              )
+              ),
             ],
           ),
         ),
@@ -185,7 +224,6 @@ void main() {
       Widget buildItem(BuildContext context, int item, Animation<double> animation) {
         return SizeTransition(
           key: ValueKey<int>(item),
-          axis: Axis.vertical,
           sizeFactor: animation,
           child: SizedBox(
             height: 100.0,
@@ -207,7 +245,7 @@ void main() {
                 itemBuilder: (BuildContext context, int index, Animation<double> animation) {
                   return buildItem(context, items[index], animation);
                 },
-              )
+              ),
             ],
           ),
         ),
@@ -321,51 +359,53 @@ void main() {
     });
   });
 
-  testWidgets('AnimatedList.of() and maybeOf called with a context that does not contain AnimatedList',
+  testWidgets(
+    'AnimatedList.of() and maybeOf called with a context that does not contain AnimatedList',
     (WidgetTester tester) async {
-    final GlobalKey key = GlobalKey();
-    await tester.pumpWidget(Container(key: key));
-    late FlutterError error;
-    expect(AnimatedList.maybeOf(key.currentContext!), isNull);
-    try {
-      AnimatedList.of(key.currentContext!);
-    } on FlutterError catch (e) {
-      error = e;
-    }
-    expect(error.diagnostics.length, 4);
-    expect(error.diagnostics[2].level, DiagnosticLevel.hint);
-    expect(
-      error.diagnostics[2].toStringDeep(),
-      equalsIgnoringHashCodes(
-        'This can happen when the context provided is from the same\n'
-        'StatefulWidget that built the AnimatedList. Please see the\n'
-        'AnimatedList documentation for examples of how to refer to an\n'
-        'AnimatedListState object:\n'
-        '  https://api.flutter.dev/flutter/widgets/AnimatedListState-class.html\n'
-      ),
-    );
-    expect(error.diagnostics[3], isA<DiagnosticsProperty<Element>>());
-    expect(
-      error.toStringDeep(),
-      equalsIgnoringHashCodes(
-        'FlutterError\n'
-        '   AnimatedList.of() called with a context that does not contain an\n'
-        '   AnimatedList.\n'
-        '   No AnimatedList ancestor could be found starting from the context\n'
-        '   that was passed to AnimatedList.of().\n'
-        '   This can happen when the context provided is from the same\n'
-        '   StatefulWidget that built the AnimatedList. Please see the\n'
-        '   AnimatedList documentation for examples of how to refer to an\n'
-        '   AnimatedListState object:\n'
-        '     https://api.flutter.dev/flutter/widgets/AnimatedListState-class.html\n'
-        '   The context used was:\n'
-        '     Container-[GlobalKey#32cc6]\n'
-      ),
-    );
-  });
+      final GlobalKey key = GlobalKey();
+      await tester.pumpWidget(Container(key: key));
+      late FlutterError error;
+      expect(AnimatedList.maybeOf(key.currentContext!), isNull);
+      try {
+        AnimatedList.of(key.currentContext!);
+      } on FlutterError catch (e) {
+        error = e;
+      }
+      expect(error.diagnostics.length, 4);
+      expect(error.diagnostics[2].level, DiagnosticLevel.hint);
+      expect(
+        error.diagnostics[2].toStringDeep(),
+        equalsIgnoringHashCodes(
+          'This can happen when the context provided is from the same\n'
+          'StatefulWidget that built the AnimatedList. Please see the\n'
+          'AnimatedList documentation for examples of how to refer to an\n'
+          'AnimatedListState object:\n'
+          '  https://api.flutter.dev/flutter/widgets/AnimatedListState-class.html\n',
+        ),
+      );
+      expect(error.diagnostics[3], isA<DiagnosticsProperty<Element>>());
+      expect(
+        error.toStringDeep(),
+        equalsIgnoringHashCodes(
+          'FlutterError\n'
+          '   AnimatedList.of() called with a context that does not contain an\n'
+          '   AnimatedList.\n'
+          '   No AnimatedList ancestor could be found starting from the context\n'
+          '   that was passed to AnimatedList.of().\n'
+          '   This can happen when the context provided is from the same\n'
+          '   StatefulWidget that built the AnimatedList. Please see the\n'
+          '   AnimatedList documentation for examples of how to refer to an\n'
+          '   AnimatedListState object:\n'
+          '     https://api.flutter.dev/flutter/widgets/AnimatedListState-class.html\n'
+          '   The context used was:\n'
+          '     Container-[GlobalKey#32cc6]\n',
+        ),
+      );
+    },
+  );
 
   testWidgets('AnimatedList.clipBehavior is forwarded to its inner CustomScrollView', (WidgetTester tester) async {
-  const Clip clipBehavior = Clip.none;
+    const Clip clipBehavior = Clip.none;
 
     await tester.pumpWidget(
       Directionality(

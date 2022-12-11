@@ -9,12 +9,12 @@ import 'package:flutter/cupertino.dart';
 import '../../gallery/demo.dart';
 
 class CupertinoRefreshControlDemo extends StatefulWidget {
-  const CupertinoRefreshControlDemo({Key? key}) : super(key: key);
+  const CupertinoRefreshControlDemo({super.key});
 
   static const String routeName = '/cupertino/refresh';
 
   @override
-  _CupertinoRefreshControlDemoState createState() => _CupertinoRefreshControlDemoState();
+  State<CupertinoRefreshControlDemo> createState() => _CupertinoRefreshControlDemoState();
 }
 
 class _CupertinoRefreshControlDemoState extends State<CupertinoRefreshControlDemo> {

@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -18,7 +16,7 @@ void main() {
     testWidgets('root bucket retrieval', (WidgetTester tester) async {
       final List<MethodCall> callsToEngine = <MethodCall>[];
       final Completer<Map<dynamic, dynamic>> result = Completer<Map<dynamic, dynamic>>();
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) {
         callsToEngine.add(call);
         return result.future;
       });
@@ -64,8 +62,9 @@ void main() {
     testWidgets('root bucket received from engine before retrieval', (WidgetTester tester) async {
       SystemChannels.restoration.setMethodCallHandler(null);
       final List<MethodCall> callsToEngine = <MethodCall>[];
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) async {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) async {
         callsToEngine.add(call);
+        return null;
       });
       final RestorationManager manager = RestorationManager();
 
@@ -83,7 +82,7 @@ void main() {
       SystemChannels.restoration.setMethodCallHandler(null);
       final List<MethodCall> callsToEngine = <MethodCall>[];
       final Completer<Map<dynamic, dynamic>> result = Completer<Map<dynamic, dynamic>>();
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) {
         callsToEngine.add(call);
         return result.future;
       });
@@ -110,7 +109,7 @@ void main() {
     });
 
     testWidgets('root bucket is properly replaced when new data is available', (WidgetTester tester) async {
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) async {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) async {
         return _createEncodedRestorationData1();
       });
       final RestorationManager manager = RestorationManager();
@@ -152,7 +151,7 @@ void main() {
     testWidgets('returns null as root bucket when restoration is disabled', (WidgetTester tester) async {
       final List<MethodCall> callsToEngine = <MethodCall>[];
       final Completer<Map<dynamic, dynamic>> result = Completer<Map<dynamic, dynamic>>();
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call)  {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call)  {
         callsToEngine.add(call);
         return result.future;
       });
@@ -195,7 +194,7 @@ void main() {
     testWidgets('flushData', (WidgetTester tester) async {
       final List<MethodCall> callsToEngine = <MethodCall>[];
       final Completer<Map<dynamic, dynamic>> result = Completer<Map<dynamic, dynamic>>();
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) {
         callsToEngine.add(call);
         return result.future;
       });
@@ -212,7 +211,7 @@ void main() {
       callsToEngine.clear();
 
       // Schedule a frame.
-      SchedulerBinding.instance!.ensureVisualUpdate();
+      SchedulerBinding.instance.ensureVisualUpdate();
       rootBucket!.write('foo', 1);
       // flushData is no-op because frame is scheduled.
       manager.flushData();
@@ -230,7 +229,7 @@ void main() {
 
     testWidgets('isReplacing', (WidgetTester tester) async {
       final Completer<Map<dynamic, dynamic>> result = Completer<Map<dynamic, dynamic>>();
-      SystemChannels.restoration.setMockMethodCallHandler((MethodCall call) {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.restoration, (MethodCall call) {
         return result.future;
       });
 
@@ -257,7 +256,7 @@ void main() {
         rootBucket2 = bucket;
       });
       expect(rootBucket2, isNotNull);
-      expect(rootBucket2!, isNot(same(rootBucket)));
+      expect(rootBucket2, isNot(same(rootBucket)));
       expect(manager.isReplacing, isTrue);
       expect(rootBucket2!.isReplacing, isTrue);
       await tester.idle();
@@ -305,7 +304,7 @@ void main() {
 }
 
 Future<void> _pushDataFromEngine(Map<dynamic, dynamic> data) async {
-  await ServicesBinding.instance!.defaultBinaryMessenger.handlePlatformMessage(
+  await ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
     'flutter/restoration',
     const StandardMethodCodec().encodeMethodCall(MethodCall('push', data)),
     (_) { },
@@ -322,7 +321,7 @@ Map<dynamic, dynamic> _createEncodedRestorationData1() {
       'child1' : <String, dynamic>{
         valuesMapKey : <String, dynamic>{
           'another value': 22,
-        }
+        },
       },
     },
   };
@@ -338,7 +337,7 @@ Map<dynamic, dynamic> _createEncodedRestorationData2() {
       'childFoo' : <String, dynamic>{
         valuesMapKey : <String, dynamic>{
           'bar': 'Hello',
-        }
+        },
       },
     },
   };

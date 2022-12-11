@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 // Returns the first RenderEditable.
 RenderEditable findRenderEditable(WidgetTester tester) {
@@ -44,4 +43,27 @@ Offset textOffsetToPosition(WidgetTester tester, int offset) {
   );
   expect(endpoints.length, 1);
   return endpoints[0].point + const Offset(0.0, -2.0);
+}
+
+// Simple controller that builds a WidgetSpan with 100 height.
+class OverflowWidgetTextEditingController extends TextEditingController {
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    return TextSpan(
+      style: style,
+      children: <InlineSpan>[
+        const TextSpan(text: 'Hi'),
+        WidgetSpan(
+          child: Container(
+            color: Colors.redAccent,
+            height: 100.0,
+          ),
+        ),
+      ],
+    );
+  }
 }

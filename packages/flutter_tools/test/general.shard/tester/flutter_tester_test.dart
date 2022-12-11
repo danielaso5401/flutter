@@ -9,7 +9,6 @@ import 'dart:async';
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/artifacts.dart';
-import 'package:flutter_tools/src/base/config.dart';
 import 'package:flutter_tools/src/base/logger.dart';
 import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/build_info.dart';
@@ -20,6 +19,7 @@ import 'package:flutter_tools/src/tester/flutter_tester.dart';
 import '../../src/common.dart';
 import '../../src/context.dart';
 import '../../src/fakes.dart';
+import '../../src/test_build_system.dart';
 
 void main() {
   MemoryFileSystem fileSystem;
@@ -36,7 +36,6 @@ void main() {
     final FlutterTesterApp app = FlutterTesterApp.fromCurrentDirectory(fileSystem);
 
     expect(app.name, 'my_project');
-    expect(app.packagesFile.path, fileSystem.path.join(projectPath, '.packages'));
   });
 
   group('FlutterTesterDevices', () {
@@ -82,7 +81,7 @@ void main() {
     TestBuildSystem buildSystem;
 
     final Map<Type, Generator> startOverrides = <Type, Generator>{
-      Platform: () => FakePlatform(operatingSystem: 'linux'),
+      Platform: () => FakePlatform(),
       FileSystem: () => fileSystem,
       ProcessManager: () => fakeProcessManager,
       Artifacts: () => Artifacts.test(),
@@ -91,12 +90,11 @@ void main() {
 
     setUp(() {
       buildSystem = TestBuildSystem.all(BuildResult(success: true));
-      fakeProcessManager = FakeProcessManager.list(<FakeCommand>[]);
+      fakeProcessManager = FakeProcessManager.empty();
       device = FlutterTesterDevice('flutter-tester',
         fileSystem: fileSystem,
         processManager: fakeProcessManager,
         artifacts: Artifacts.test(),
-        buildDirectory: 'build',
         logger: BufferLogger.test(),
         flutterVersion: FakeFlutterVersion(),
         operatingSystemUtils: FakeOperatingSystemUtils(),
@@ -149,14 +147,47 @@ void main() {
           '--run-forever',
           '--non-interactive',
           '--enable-dart-profiling',
-          '--packages=.packages',
-          '--flutter-assets-dir=/.tmp_rand0/flutter-testerrand0',
-          '/.tmp_rand0/flutter-testerrand0/flutter-tester-app.dill',
+          '--packages=.dart_tool/package_config.json',
+          '--flutter-assets-dir=/.tmp_rand0/flutter_tester.rand0',
+          '/.tmp_rand0/flutter_tester.rand0/flutter-tester-app.dill',
         ],
         completer: completer,
         stdout:
         '''
-Observatory listening on $observatoryUri
+The Dart VM service is listening on $observatoryUri
+Hello!
+''',
+      ));
+
+      final LaunchResult result = await device.startApp(app,
+        mainPath: mainPath,
+        debuggingOptions: DebuggingOptions.enabled(const BuildInfo(BuildMode.debug, null, treeShakeIcons: false)),
+      );
+
+      expect(result.started, isTrue);
+      expect(result.observatoryUri, observatoryUri);
+      expect(logLines.last, 'Hello!');
+      expect(fakeProcessManager.hasRemainingExpectations, isFalse);
+    }, overrides: startOverrides);
+
+    testUsingContext('performs a build and starts in debug mode with track-widget-creation', () async {
+      final FlutterTesterApp app = FlutterTesterApp.fromCurrentDirectory(fileSystem);
+      final Uri observatoryUri = Uri.parse('http://127.0.0.1:6666/');
+      final Completer<void> completer = Completer<void>();
+      fakeProcessManager.addCommand(FakeCommand(
+        command: const <String>[
+          'Artifact.flutterTester',
+          '--run-forever',
+          '--non-interactive',
+          '--enable-dart-profiling',
+          '--packages=.dart_tool/package_config.json',
+          '--flutter-assets-dir=/.tmp_rand0/flutter_tester.rand0',
+          '/.tmp_rand0/flutter_tester.rand0/flutter-tester-app.dill.track.dill',
+        ],
+        completer: completer,
+        stdout:
+        '''
+The Dart VM service is listening on $observatoryUri
 Hello!
 ''',
       ));
@@ -180,7 +211,6 @@ FlutterTesterDevices setUpFlutterTesterDevices() {
     artifacts: Artifacts.test(),
     processManager: FakeProcessManager.any(),
     fileSystem: MemoryFileSystem.test(),
-    config: Config.test(),
     flutterVersion: FakeFlutterVersion(),
     operatingSystemUtils: FakeOperatingSystemUtils(),
   );

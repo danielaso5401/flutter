@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
-import 'package:meta/meta.dart';
-
 import '../base/analyze_size.dart';
 import '../base/common.dart';
 import '../base/os.dart';
@@ -21,9 +17,10 @@ import 'build.dart';
 /// A command to build a linux desktop target through a build shell script.
 class BuildLinuxCommand extends BuildSubCommand {
   BuildLinuxCommand({
-    @required OperatingSystemUtils operatingSystemUtils,
+    required OperatingSystemUtils operatingSystemUtils,
     bool verboseHelp = false,
-  }) : _operatingSystemUtils = operatingSystemUtils {
+  }) : _operatingSystemUtils = operatingSystemUtils,
+       super(verboseHelp: verboseHelp) {
     addCommonDesktopBuildOptions(verboseHelp: verboseHelp);
     final String defaultTargetPlatform =
         (_operatingSystemUtils.hostPlatform == HostPlatform.linux_arm64) ?
@@ -62,13 +59,13 @@ class BuildLinuxCommand extends BuildSubCommand {
     final BuildInfo buildInfo = await getBuildInfo();
     final FlutterProject flutterProject = FlutterProject.current();
     final TargetPlatform targetPlatform =
-        getTargetPlatformForName(stringArg('target-platform'));
+        getTargetPlatformForName(stringArgDeprecated('target-platform')!);
     final bool needCrossBuild =
         getNameForHostPlatformArch(_operatingSystemUtils.hostPlatform)
             != getNameForTargetPlatformArch(targetPlatform);
 
     if (!featureFlags.isLinuxEnabled) {
-      throwToolExit('"build linux" is not currently supported.');
+      throwToolExit('"build linux" is not currently supported. To enable, run "flutter config --enable-linux-desktop".');
     }
     if (!globals.platform.isLinux) {
       throwToolExit('"build linux" only supported on Linux hosts.');
@@ -96,7 +93,7 @@ class BuildLinuxCommand extends BuildSubCommand {
       ),
       needCrossBuild: needCrossBuild,
       targetPlatform: targetPlatform,
-      targetSysroot: stringArg('target-sysroot'),
+      targetSysroot: stringArgDeprecated('target-sysroot')!,
     );
     return FlutterCommandResult.success();
   }

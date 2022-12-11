@@ -2,13 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'dart:async';
 
 import 'package:flutter_tools/src/artifacts.dart';
+import 'package:flutter_tools/src/base/async_guard.dart';
 import 'package:flutter_tools/src/base/logger.dart';
-import 'package:flutter_tools/src/build_info.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/convert.dart';
 import 'package:flutter_tools/src/device.dart';
@@ -16,26 +14,26 @@ import 'package:flutter_tools/src/ios/devices.dart';
 import 'package:flutter_tools/src/ios/ios_deploy.dart';
 import 'package:flutter_tools/src/ios/mac.dart';
 import 'package:flutter_tools/src/vmservice.dart';
-import 'package:mockito/mockito.dart';
+import 'package:test/fake.dart';
 import 'package:vm_service/vm_service.dart';
 
 import '../../src/common.dart';
-import '../../src/context.dart';
+import '../../src/fake_process_manager.dart';
 import '../../src/fake_vm_services.dart';
 
 void main() {
-  FakeProcessManager processManager;
-  Artifacts artifacts;
-  Cache fakeCache;
-  BufferLogger logger;
-  String ideviceSyslogPath;
+  late FakeProcessManager processManager;
+  late Artifacts artifacts;
+  late Cache fakeCache;
+  late BufferLogger logger;
+  late String ideviceSyslogPath;
 
   setUp(() {
-    processManager = FakeProcessManager.list(<FakeCommand>[]);
+    processManager = FakeProcessManager.empty();
     fakeCache = Cache.test(processManager: FakeProcessManager.any());
     artifacts = Artifacts.test();
     logger = BufferLogger.test();
-    ideviceSyslogPath = artifacts.getArtifactPath(Artifact.idevicesyslog, platform: TargetPlatform.ios);
+    ideviceSyslogPath = artifacts.getHostArtifact(HostArtifact.idevicesyslog).path;
   });
 
   group('syslog stream', () {
@@ -227,13 +225,13 @@ Runner(libsystem_asl.dylib)[297] <Notice>: libMobileGestalt
       );
       logReader.connectedVMService = vmService;
 
-      final MockIOSDeployDebugger iosDeployDebugger = MockIOSDeployDebugger();
-      when(iosDeployDebugger.debuggerAttached).thenReturn(true);
+      final FakeIOSDeployDebugger iosDeployDebugger = FakeIOSDeployDebugger();
+      iosDeployDebugger.debuggerAttached = true;
 
       final Stream<String> debuggingLogs = Stream<String>.fromIterable(<String>[
-        'Message from debugger'
+        'Message from debugger',
       ]);
-      when(iosDeployDebugger.logLines).thenAnswer((Invocation invocation) => debuggingLogs);
+      iosDeployDebugger.logLines = debuggingLogs;
       logReader.debuggerStream = iosDeployDebugger;
 
       // Wait for stream listeners to fire.
@@ -261,8 +259,8 @@ Runner(libsystem_asl.dylib)[297] <Notice>: libMobileGestalt
         ),
         useSyslog: false,
       );
-      final MockIOSDeployDebugger iosDeployDebugger = MockIOSDeployDebugger();
-      when(iosDeployDebugger.logLines).thenAnswer((Invocation invocation) => debuggingLogs);
+      final FakeIOSDeployDebugger iosDeployDebugger = FakeIOSDeployDebugger();
+      iosDeployDebugger.logLines = debuggingLogs;
       logReader.debuggerStream = iosDeployDebugger;
       final Future<List<String>> logLines = logReader.logLines.toList();
 
@@ -286,8 +284,8 @@ Runner(libsystem_asl.dylib)[297] <Notice>: libMobileGestalt
         useSyslog: false,
       );
       final Completer<void> streamComplete = Completer<void>();
-      final MockIOSDeployDebugger iosDeployDebugger = MockIOSDeployDebugger();
-      when(iosDeployDebugger.logLines).thenAnswer((Invocation invocation) => debuggingLogs);
+      final FakeIOSDeployDebugger iosDeployDebugger = FakeIOSDeployDebugger();
+      iosDeployDebugger.logLines = debuggingLogs;
       logReader.logLines.listen(null, onError: (Object error) => streamComplete.complete());
       logReader.debuggerStream = iosDeployDebugger;
 
@@ -304,14 +302,65 @@ Runner(libsystem_asl.dylib)[297] <Notice>: libMobileGestalt
         ),
         useSyslog: false,
       );
-      final MockIOSDeployDebugger iosDeployDebugger = MockIOSDeployDebugger();
-      when(iosDeployDebugger.logLines).thenAnswer((Invocation invocation) => const Stream<String>.empty());
+      final FakeIOSDeployDebugger iosDeployDebugger = FakeIOSDeployDebugger();
       logReader.debuggerStream = iosDeployDebugger;
 
       logReader.dispose();
-      verify(iosDeployDebugger.detach());
+      expect(iosDeployDebugger.detached, true);
+    });
+
+    testWithoutContext('Does not throw if debuggerStream set after logReader closed', () async {
+      final Stream<String> debuggingLogs = Stream<String>.fromIterable(<String>[
+        '2020-09-15 19:15:10.931434-0700 Runner[541:226276] Did finish launching.',
+        '2020-09-15 19:15:10.931434-0700 Runner[541:226276] [Category] Did finish launching from logging category.',
+        'stderr from dart',
+        '',
+      ]);
+
+      final IOSDeviceLogReader logReader = IOSDeviceLogReader.test(
+        iMobileDevice: IMobileDevice(
+          artifacts: artifacts,
+          processManager: processManager,
+          cache: fakeCache,
+          logger: logger,
+        ),
+        useSyslog: false,
+      );
+      Object? exception;
+      StackTrace? trace;
+      await asyncGuard(
+          () async {
+            await logReader.linesController.close();
+            final FakeIOSDeployDebugger iosDeployDebugger = FakeIOSDeployDebugger();
+            iosDeployDebugger.logLines = debuggingLogs;
+            logReader.debuggerStream = iosDeployDebugger;
+            await logReader.logLines.drain<void>();
+          },
+          onError: (Object err, StackTrace stackTrace) {
+            exception = err;
+            trace = stackTrace;
+          }
+      );
+      expect(
+        exception,
+        isNull,
+        reason: trace.toString(),
+      );
     });
   });
 }
 
-class MockIOSDeployDebugger extends Mock implements IOSDeployDebugger {}
+class FakeIOSDeployDebugger extends Fake implements IOSDeployDebugger {
+  bool detached = false;
+
+  @override
+  bool debuggerAttached = false;
+
+  @override
+  Stream<String> logLines = const Stream<String>.empty();
+
+  @override
+  void detach() {
+    detached = true;
+  }
+}

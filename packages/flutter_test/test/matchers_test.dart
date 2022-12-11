@@ -2,8 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// flutter_ignore_for_file: golden_tag (see analyze.dart)
+
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -13,8 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 class _MockToStringDeep {
   _MockToStringDeep(String str) : _lines = <String>[] {
     final List<String> lines = str.split('\n');
-    for (int i = 0; i < lines.length - 1; ++i)
+    for (int i = 0; i < lines.length - 1; ++i) {
       _lines.add('${lines[i]}\n');
+    }
 
     // If the last line is empty, that really just means that the previous
     // line was terminated with a line break.
@@ -32,11 +34,13 @@ class _MockToStringDeep {
 
   String toStringDeep({ String prefixLineOne = '', String prefixOtherLines = '' }) {
     final StringBuffer sb = StringBuffer();
-    if (_lines.isNotEmpty)
+    if (_lines.isNotEmpty) {
       sb.write('$prefixLineOne${_lines.first}');
+    }
 
-    for (int i = 1; i < _lines.length; ++i)
+    for (int i = 1; i < _lines.length; ++i) {
       sb.write('$prefixOtherLines${_lines[i]}');
+    }
 
     return sb.toString();
   }
@@ -103,23 +107,31 @@ void main() {
         '├─B\n'
         '│\n'), isNot(hasAGoodToStringDeep));
 
-    expect(_MockToStringDeep.fromLines(
-        <String>['Paragraph#00000\n',
-                 ' │ size: (400x200)\n',
-                 ' ╘═╦══ text ═══\n',
-                 '   ║ TextSpan:\n',
-                 '   ║   "I polished up that handle so carefullee\n',
-                 '   ║   That now I am the Ruler of the Queen\'s Navee!"\n',
-                 '   ╚═══════════\n']), hasAGoodToStringDeep);
+    expect(
+      _MockToStringDeep.fromLines(<String>[
+        'Paragraph#00000\n',
+        ' │ size: (400x200)\n',
+        ' ╘═╦══ text ═══\n',
+        '   ║ TextSpan:\n',
+        '   ║   "I polished up that handle so carefullee\n',
+        '   ║   That now I am the Ruler of the Queen\'s Navee!"\n',
+        '   ╚═══════════\n',
+      ]),
+      hasAGoodToStringDeep,
+    );
 
     // Text span
-    expect(_MockToStringDeep.fromLines(
-        <String>['Paragraph#00000\n',
-                 ' │ size: (400x200)\n',
-                 ' ╘═╦══ text ═══\n',
-                 '   ║ TextSpan:\n',
-                 '   ║   "I polished up that handle so carefullee\nThat now I am the Ruler of the Queen\'s Navee!"\n',
-                 '   ╚═══════════\n']), isNot(hasAGoodToStringDeep));
+    expect(
+      _MockToStringDeep.fromLines(<String>[
+        'Paragraph#00000\n',
+        ' │ size: (400x200)\n',
+        ' ╘═╦══ text ═══\n',
+        '   ║ TextSpan:\n',
+        '   ║   "I polished up that handle so carefullee\nThat now I am the Ruler of the Queen\'s Navee!"\n',
+        '   ╚═══════════\n',
+      ]),
+      isNot(hasAGoodToStringDeep),
+    );
   });
 
   test('normalizeHashCodesEquals', () {
@@ -352,13 +364,26 @@ void main() {
     });
 
     group('matches', () {
-
       testWidgets('if comparator succeeds', (WidgetTester tester) async {
         await tester.pumpWidget(boilerplate(const Text('hello')));
         final Finder finder = find.byType(Text);
         await expectLater(finder, matchesGoldenFile('foo.png'));
         expect(comparator.invocation, _ComparatorInvocation.compare);
         expect(comparator.imageBytes, hasLength(greaterThan(0)));
+        expect(comparator.golden, Uri.parse('foo.png'));
+      });
+
+      testWidgets('list of integers', (WidgetTester tester) async {
+        await expectLater(<int>[1, 2], matchesGoldenFile('foo.png'));
+        expect(comparator.invocation, _ComparatorInvocation.compare);
+        expect(comparator.imageBytes, equals(<int>[1, 2]));
+        expect(comparator.golden, Uri.parse('foo.png'));
+      });
+
+      testWidgets('future list of integers', (WidgetTester tester) async {
+        await expectLater(Future<List<int>>.value(<int>[1, 2]), matchesGoldenFile('foo.png'));
+        expect(comparator.invocation, _ComparatorInvocation.compare);
+        expect(comparator.imageBytes, equals(<int>[1, 2]));
         expect(comparator.golden, Uri.parse('foo.png'));
       });
     });
@@ -368,38 +393,44 @@ void main() {
         comparator.behavior = _ComparatorBehavior.returnFalse;
         await tester.pumpWidget(boilerplate(const Text('hello')));
         final Finder finder = find.byType(Text);
-        try {
-          await expectLater(finder, matchesGoldenFile('foo.png'));
-          fail('TestFailure expected but not thrown');
-        } on TestFailure catch (error) {
-          expect(comparator.invocation, _ComparatorInvocation.compare);
-          expect(error.message, contains('does not match'));
-        }
+        await expectLater(
+          () => expectLater(finder, matchesGoldenFile('foo.png')),
+          throwsA(isA<TestFailure>().having(
+            (TestFailure error) => error.message,
+            'message',
+            contains('does not match'),
+          )),
+        );
+        expect(comparator.invocation, _ComparatorInvocation.compare);
       });
 
       testWidgets('if comparator throws', (WidgetTester tester) async {
         comparator.behavior = _ComparatorBehavior.throwTestFailure;
         await tester.pumpWidget(boilerplate(const Text('hello')));
         final Finder finder = find.byType(Text);
-        try {
-          await expectLater(finder, matchesGoldenFile('foo.png'));
-          fail('TestFailure expected but not thrown');
-        } on TestFailure catch (error) {
-          expect(comparator.invocation, _ComparatorInvocation.compare);
-          expect(error.message, contains('fake message'));
-        }
+        await expectLater(
+          () => expectLater(finder, matchesGoldenFile('foo.png')),
+          throwsA(isA<TestFailure>().having(
+            (TestFailure error) => error.message,
+            'message',
+            contains('fake message'),
+          )),
+        );
+        expect(comparator.invocation, _ComparatorInvocation.compare);
       });
 
       testWidgets('if finder finds no widgets', (WidgetTester tester) async {
         await tester.pumpWidget(boilerplate(Container()));
         final Finder finder = find.byType(Text);
-        try {
-          await expectLater(finder, matchesGoldenFile('foo.png'));
-          fail('TestFailure expected but not thrown');
-        } on TestFailure catch (error) {
-          expect(comparator.invocation, isNull);
-          expect(error.message, contains('no widget was found'));
-        }
+        await expectLater(
+          () => expectLater(finder, matchesGoldenFile('foo.png')),
+          throwsA(isA<TestFailure>().having(
+            (TestFailure error) => error.message,
+            'message',
+            contains('no widget was found'),
+          )),
+        );
+        expect(comparator.invocation, isNull);
       });
 
       testWidgets('if finder finds multiple widgets', (WidgetTester tester) async {
@@ -407,13 +438,15 @@ void main() {
           children: const <Widget>[Text('hello'), Text('world')],
         )));
         final Finder finder = find.byType(Text);
-        try {
-          await expectLater(finder, matchesGoldenFile('foo.png'));
-          fail('TestFailure expected but not thrown');
-        } on TestFailure catch (error) {
-          expect(comparator.invocation, isNull);
-          expect(error.message, contains('too many widgets'));
-        }
+        await expectLater(
+          () => expectLater(finder, matchesGoldenFile('foo.png')),
+          throwsA(isA<TestFailure>().having(
+            (TestFailure error) => error.message,
+            'message',
+            contains('too many widgets'),
+          )),
+        );
+        expect(comparator.invocation, isNull);
       });
     });
 
@@ -529,20 +562,24 @@ void main() {
       int actions = 0;
       int flags = 0;
       const CustomSemanticsAction action = CustomSemanticsAction(label: 'test');
-      for (final int index in SemanticsAction.values.keys)
+      for (final int index in SemanticsAction.values.keys) {
         actions |= index;
-      for (final int index in SemanticsFlag.values.keys)
+      }
+      for (final int index in SemanticsFlag.values.keys) {
         // TODO(mdebbar): Remove this if after https://github.com/flutter/engine/pull/9894
-        if (SemanticsFlag.values[index] != SemanticsFlag.isMultiline)
+        if (SemanticsFlag.values[index] != SemanticsFlag.isMultiline) {
           flags |= index;
+        }
+      }
       final SemanticsData data = SemanticsData(
         flags: flags,
         actions: actions,
-        label: 'a',
-        increasedValue: 'b',
-        value: 'c',
-        decreasedValue: 'd',
-        hint: 'e',
+        attributedLabel: AttributedString('a'),
+        attributedIncreasedValue: AttributedString('b'),
+        attributedValue: AttributedString('c'),
+        attributedDecreasedValue: AttributedString('d'),
+        attributedHint: AttributedString('e'),
+        tooltip: 'f',
         textDirection: TextDirection.ltr,
         rect: const Rect.fromLTRB(0.0, 0.0, 10.0, 10.0),
         elevation: 3.0,
@@ -650,6 +687,42 @@ void main() {
       handle.dispose();
     });
   });
+
+  group('findsAtLeastNWidgets', () {
+    Widget boilerplate(Widget child) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: child,
+      );
+    }
+
+    testWidgets('succeeds when finds more then the specified count',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(boilerplate(Column(
+        children: const <Widget>[Text('1'), Text('2'), Text('3')],
+      )));
+
+      expect(find.byType(Text), findsAtLeastNWidgets(2));
+    });
+
+    testWidgets('succeeds when finds the exact specified count',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(boilerplate(Column(
+        children: const <Widget>[Text('1'), Text('2')],
+      )));
+
+      expect(find.byType(Text), findsAtLeastNWidgets(2));
+    });
+
+    testWidgets('fails when finds less then specified count',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(boilerplate(Column(
+        children: const <Widget>[Text('1'), Text('2')],
+      )));
+
+      expect(find.byType(Text), isNot(findsAtLeastNWidgets(3)));
+    });
+  });
 }
 
 enum _ComparatorBehavior {
@@ -680,7 +753,7 @@ class _FakeComparator implements GoldenFileComparator {
       case _ComparatorBehavior.returnFalse:
         return Future<bool>.value(false);
       case _ComparatorBehavior.throwTestFailure:
-        throw TestFailure('fake message');
+        fail('fake message');
     }
   }
 
@@ -708,12 +781,12 @@ class _FakeSemanticsNode extends SemanticsNode {
 
 @immutable
 class _CustomColor extends Color {
-  const _CustomColor(int value, {this.isEqual}) : super(value);
+  const _CustomColor(super.value, {this.isEqual});
   final bool? isEqual;
 
   @override
   bool operator ==(Object other) => isEqual ?? super == other;
 
   @override
-  int get hashCode => hashValues(super.hashCode, isEqual);
+  int get hashCode => Object.hash(super.hashCode, isEqual);
 }

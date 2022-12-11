@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 List<String> ancestors = <String>[];
 
 class TestWidget extends StatefulWidget {
-  const TestWidget({ Key? key }) : super(key: key);
+  const TestWidget({ super.key });
   @override
   TestWidgetState createState() => TestWidgetState();
 }
@@ -35,7 +35,7 @@ void main() {
 }
 
 class Parent extends StatelessWidget {
-  const Parent({ Key? key, required this.child }) : super(key: key);
+  const Parent({ super.key, required this.child });
 
   final Widget child;
 

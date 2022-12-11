@@ -17,7 +17,7 @@ void addFlexChildSolidColor(RenderFlex parent, Color backgroundColor, { int flex
 
 // Solid color, Widget version
 class Rectangle extends StatelessWidget {
-  const Rectangle(this.color, { Key? key }) : super(key: key);
+  const Rectangle(this.color, { super.key });
 
   final Color color;
 
@@ -41,6 +41,7 @@ void attachWidgetTreeToRenderTree(RenderProxyBox container) {
       child: SizedBox(
         height: 300.0,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             const Rectangle(Color(0xFF00FFFF)),
             Material(
@@ -48,6 +49,7 @@ void attachWidgetTreeToRenderTree(RenderProxyBox container) {
                 padding: const EdgeInsets.all(10.0),
                 margin: const EdgeInsets.all(10.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
                     ElevatedButton(
                       child: Row(
@@ -63,17 +65,15 @@ void attachWidgetTreeToRenderTree(RenderProxyBox container) {
                     ),
                     CircularProgressIndicator(value: value),
                   ],
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                 ),
               ),
             ),
             const Rectangle(Color(0xFFFFFF00)),
           ],
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
         ),
       ),
     ),
-  ).attachToRenderTree(WidgetsBinding.instance!.buildOwner!, element);
+  ).attachToRenderTree(WidgetsBinding.instance.buildOwner!, element);
 }
 
 Duration? timeBase;
@@ -86,7 +86,7 @@ void rotate(Duration timeStamp) {
   transformBox.setIdentity();
   transformBox.rotateZ(delta);
 
-  WidgetsBinding.instance!.buildOwner!.buildScope(element!);
+  WidgetsBinding.instance.buildOwner!.buildScope(element!);
 }
 
 void main() {

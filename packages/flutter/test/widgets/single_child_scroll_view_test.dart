@@ -2,25 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
-import '../rendering/rendering_tester.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../rendering/rendering_tester.dart' show TestClipPaintingContext;
 import 'semantics_tester.dart';
 
 class TestScrollPosition extends ScrollPositionWithSingleContext {
   TestScrollPosition({
-    required ScrollPhysics physics,
+    required super.physics,
     required ScrollContext state,
-    double initialPixels = 0.0,
-    ScrollPosition? oldPosition,
+    double super.initialPixels,
+    super.oldPosition,
   }) : super(
-    physics: physics,
     context: state,
-    initialPixels: initialPixels,
-    oldPosition: oldPosition,
   );
 }
 
@@ -36,6 +32,19 @@ class TestScrollController extends ScrollController {
   }
 }
 
+Widget primaryScrollControllerBoilerplate({ required Widget child, required ScrollController controller }) {
+  return Directionality(
+    textDirection: TextDirection.ltr,
+    child: MediaQuery(
+      data: const MediaQueryData(),
+      child: PrimaryScrollController(
+        controller: controller,
+        child: child,
+      ),
+    ),
+  );
+}
+
 void main() {
   testWidgets('SingleChildScrollView overflow and clipRect test', (WidgetTester tester) async {
     // the test widowSize is Size(800.0, 600.0)
@@ -43,19 +52,18 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Container(height: 600.0)
+          child: Container(height: 600.0),
         ),
       ),
     );
 
     // 1st, check that the render object has received the default clip behavior.
     final dynamic renderObject = tester.allRenderObjects.where((RenderObject o) => o.runtimeType.toString() == '_RenderSingleChildViewport').first;
-    expect(renderObject.clipBehavior, equals(Clip.hardEdge));
+    expect(renderObject.clipBehavior, equals(Clip.hardEdge)); // ignore: avoid_dynamic_calls
 
     // 2nd, height == widow.height test: check that the painting context does not call pushClipRect .
     TestClipPaintingContext context = TestClipPaintingContext();
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.none));
 
     // 3rd, height overflow test: check that the painting context call pushClipRect.
@@ -63,12 +71,11 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
           child: Container(height: 600.1),
         ),
       ),
     );
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.hardEdge));
 
     // 4th, width == widow.width test: check that the painting context do not call pushClipRect.
@@ -83,7 +90,7 @@ void main() {
         ),
       ),
     );
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.none));
 
     // 5th, width overflow test: check that the painting context call pushClipRect.
@@ -96,7 +103,7 @@ void main() {
         ),
       ),
     );
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.hardEdge));
   });
 
@@ -105,19 +112,19 @@ void main() {
 
     // 1st, check that the render object has received the default clip behavior.
     final dynamic renderObject = tester.allRenderObjects.where((RenderObject o) => o.runtimeType.toString() == '_RenderSingleChildViewport').first;
-    expect(renderObject.clipBehavior, equals(Clip.hardEdge));
+    expect(renderObject.clipBehavior, equals(Clip.hardEdge)); // ignore: avoid_dynamic_calls
 
     // 2nd, check that the painting context has received the default clip behavior.
     final TestClipPaintingContext context = TestClipPaintingContext();
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.hardEdge));
 
     // 3rd, pump a new widget to check that the render object can update its clip behavior.
     await tester.pumpWidget(SingleChildScrollView(clipBehavior: Clip.antiAlias, child: Container(height: 2000.0)));
-    expect(renderObject.clipBehavior, equals(Clip.antiAlias));
+    expect(renderObject.clipBehavior, equals(Clip.antiAlias)); // ignore: avoid_dynamic_calls
 
     // 4th, check that a non-default clip behavior can be sent to the painting context.
-    renderObject.paint(context, Offset.zero);
+    renderObject.paint(context, Offset.zero); // ignore: avoid_dynamic_calls
     expect(context.clipBehavior, equals(Clip.antiAlias));
   });
 
@@ -214,23 +221,40 @@ void main() {
     ));
   });
 
-  testWidgets('Vertical SingleChildScrollViews are primary by default', (WidgetTester tester) async {
-    const SingleChildScrollView view = SingleChildScrollView(scrollDirection: Axis.vertical);
-    expect(view.primary, isTrue);
+  testWidgets('Vertical SingleChildScrollViews are not primary by default', (WidgetTester tester) async {
+    const SingleChildScrollView view = SingleChildScrollView();
+    expect(view.primary, isNull);
   });
 
-  testWidgets('Horizontal SingleChildScrollViews are non-primary by default', (WidgetTester tester) async {
+  testWidgets('Horizontal SingleChildScrollViews are not primary by default', (WidgetTester tester) async {
     const SingleChildScrollView view = SingleChildScrollView(scrollDirection: Axis.horizontal);
-    expect(view.primary, isFalse);
+    expect(view.primary, isNull);
   });
 
-  testWidgets('SingleChildScrollViews with controllers are non-primary by default', (WidgetTester tester) async {
+  testWidgets('SingleChildScrollViews with controllers are not primary by default', (WidgetTester tester) async {
     final SingleChildScrollView view = SingleChildScrollView(
       controller: ScrollController(),
-      scrollDirection: Axis.vertical,
     );
-    expect(view.primary, isFalse);
+    expect(view.primary, isNull);
   });
+
+  testWidgets('Vertical SingleChildScrollViews use PrimaryScrollController by default on mobile', (WidgetTester tester) async {
+    final ScrollController controller = ScrollController();
+    await tester.pumpWidget(primaryScrollControllerBoilerplate(
+      child: const SingleChildScrollView(),
+      controller: controller,
+    ));
+    expect(controller.hasClients, isTrue);
+  }, variant: TargetPlatformVariant.mobile());
+
+  testWidgets("Vertical SingleChildScrollViews don't use PrimaryScrollController by default on desktop", (WidgetTester tester) async {
+    final ScrollController controller = ScrollController();
+    await tester.pumpWidget(primaryScrollControllerBoilerplate(
+      child: const SingleChildScrollView(),
+      controller: controller,
+    ));
+    expect(controller.hasClients, isFalse);
+  }, variant: TargetPlatformVariant.desktop());
 
   testWidgets('Nested scrollables have a null PrimaryScrollController', (WidgetTester tester) async {
     const Key innerKey = Key('inner');

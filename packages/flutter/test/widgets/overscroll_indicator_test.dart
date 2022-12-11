@@ -4,8 +4,8 @@
 
 import 'dart:math' as math;
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/mock_canvas.dart';
 
@@ -105,20 +105,24 @@ void main() {
     expect(painter, paints..circle(x: 400.0));
     await slowDrag(tester, const Offset(100.0, 200.0), const Offset(0.0, 10.0));
     expect(painter, paints..something((Symbol method, List<dynamic> arguments) {
-      if (method != #drawCircle)
+      if (method != #drawCircle) {
         return false;
+      }
       final Offset center = arguments[0] as Offset;
-      if (center.dx < 400.0)
+      if (center.dx < 400.0) {
         return true;
+      }
       throw 'Dragging on left hand side did not overscroll on left hand side.';
     }));
     await slowDrag(tester, const Offset(700.0, 200.0), const Offset(0.0, 10.0));
     expect(painter, paints..something((Symbol method, List<dynamic> arguments) {
-      if (method != #drawCircle)
+      if (method != #drawCircle) {
         return false;
+      }
       final Offset center = arguments[0] as Offset;
-      if (center.dx > 400.0)
+      if (center.dx > 400.0) {
         return true;
+      }
       throw 'Dragging on right hand side did not overscroll on right hand side.';
     }));
 
@@ -146,11 +150,13 @@ void main() {
       await gesture.moveBy(const Offset(50.0, 50.0));
       await tester.pump(const Duration(milliseconds: 20));
       expect(painter, paints..something((Symbol method, List<dynamic> arguments) {
-        if (method != #drawCircle)
+        if (method != #drawCircle) {
           return false;
+        }
         final Offset center = arguments[0] as Offset;
-        if (center.dx <= oldX)
+        if (center.dx <= oldX) {
           throw 'Sliding to the right did not make the center of the radius slide to the right.';
+        }
         oldX = center.dx;
         return true;
       }));
@@ -245,8 +251,14 @@ void main() {
     expect(painter, paints..rotate(angle: math.pi / 2.0)..circle()..saveRestore());
     expect(painter, isNot(paints..circle()..circle()));
     await slowDrag(tester, const Offset(200.0, 200.0), const Offset(-5.0, 0.0));
-    expect(painter, paints..rotate(angle: math.pi / 2.0)..circle()
-                          ..rotate(angle: math.pi / 2.0)..circle());
+    expect(
+      painter,
+      paints
+        ..rotate(angle: math.pi / 2.0)
+        ..circle()
+        ..rotate(angle: math.pi / 2.0)
+        ..circle(),
+    );
 
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(painter, doesNotOverscroll);
@@ -539,9 +551,9 @@ class TestScrollBehavior1 extends ScrollBehavior {
   @override
   Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
     return GlowingOverscrollIndicator(
-      child: child,
       axisDirection: details.direction,
       color: const Color(0xFF00FF00),
+      child: child,
     );
   }
 }
@@ -552,9 +564,9 @@ class TestScrollBehavior2 extends ScrollBehavior {
   @override
   Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
     return GlowingOverscrollIndicator(
-      child: child,
       axisDirection: details.direction,
       color: const Color(0xFF0000FF),
+      child: child,
     );
   }
 }

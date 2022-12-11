@@ -2,12 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:ui';
-
-import 'package:flutter/semantics.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 class TestDragData {
   const TestDragData(
@@ -94,7 +92,7 @@ void main() {
       expect(semantics.label, 'hello');
       expect(semantics.hasAction(SemanticsAction.tap), true);
       expect(semantics.hasFlag(SemanticsFlag.isButton), true);
-    }, semanticsEnabled: true);
+    });
 
     testWidgets('Returns merged SemanticsData', (WidgetTester tester) async {
       final SemanticsHandle semanticsHandle = tester.ensureSemantics();
@@ -383,8 +381,8 @@ void main() {
             testResult.expectedOffsets[valueIndex],
             offsetMoreOrLessEquals(dragOffsets[valueIndex]),
             reason:
-              'There is a difference in the expected and actual value of the ' +
-              (valueIndex == 2 ? 'first' : valueIndex == 3 ? 'second' : 'third') +
+              'There is a difference in the expected and actual value of the '
+              '${valueIndex == 2 ? 'first' : valueIndex == 3 ? 'second' : 'third'}'
               ' split offset for the drag with:\n'
               'Touch slop: ${testResult.slop}\n'
               'Delta:      ${testResult.dragDistance}\n'
@@ -416,12 +414,13 @@ void main() {
 
       const String b = '$kSecondaryMouseButton';
       for(int i = 0; i < logs.length; i++) {
-        if (i == 0)
+        if (i == 0) {
           expect(logs[i], 'down $b');
-        else if (i != logs.length - 1)
+        } else if (i != logs.length - 1) {
           expect(logs[i], 'move $b');
-        else
+        } else {
           expect(logs[i], 'up 0');
+        }
       }
     },
   );
@@ -472,12 +471,13 @@ void main() {
 
       const String b = '$kSecondaryMouseButton';
       for(int i = 0; i < logs.length; i++) {
-        if (i == 0)
+        if (i == 0) {
           expect(logs[i], 'down $b');
-        else if (i != logs.length - 1)
+        } else if (i != logs.length - 1) {
           expect(logs[i], 'move $b');
-        else
+        } else {
           expect(logs[i], 'up 0');
+        }
       }
     },
   );
@@ -503,12 +503,13 @@ void main() {
 
       const String b = '$kSecondaryMouseButton';
       for(int i = 0; i < logs.length; i++) {
-        if (i == 0)
+        if (i == 0) {
           expect(logs[i], 'down $b');
-        else if (i != logs.length - 1)
+        } else if (i != logs.length - 1) {
           expect(logs[i], 'move $b');
-        else
+        } else {
           expect(logs[i], 'up 0');
+        }
       }
     },
   );
@@ -535,12 +536,13 @@ void main() {
 
       const String b = '$kSecondaryMouseButton';
       for(int i = 0; i < logs.length; i++) {
-        if (i == 0)
+        if (i == 0) {
           expect(logs[i], 'down $b');
-        else if (i != logs.length - 1)
+        } else if (i != logs.length - 1) {
           expect(logs[i], 'move $b');
-        else
+        } else {
           expect(logs[i], 'up 0');
+        }
       }
     },
   );
@@ -599,12 +601,13 @@ void main() {
 
       const String b = '$kSecondaryMouseButton';
       for(int i = 0; i < logs.length; i++) {
-        if (i == 0)
+        if (i == 0) {
           expect(logs[i], 'down $b');
-        else if (i != logs.length - 1)
+        } else if (i != logs.length - 1) {
           expect(logs[i], 'move $b');
-        else
+        } else {
           expect(logs[i], 'up 0');
+        }
       }
     },
   );
@@ -663,12 +666,12 @@ void main() {
       );
 
       // Make sure widget isn't on screen
-      expect(find.text('Item 15', skipOffstage: true), findsNothing);
+      expect(find.text('Item 15'), findsNothing);
 
       await tester.ensureVisible(find.text('Item 15', skipOffstage: false));
       await tester.pumpAndSettle();
 
-      expect(find.text('Item 15', skipOffstage: true), findsOneWidget);
+      expect(find.text('Item 15'), findsOneWidget);
     },
   );
 
@@ -698,7 +701,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Now the widget is on screen.
-        expect(find.text('Item 45', skipOffstage: true), findsOneWidget);
+        expect(find.text('Item 45'), findsOneWidget);
       },
     );
 
@@ -729,7 +732,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Now the widget is on screen.
-        expect(find.text('Item 45', skipOffstage: true), findsOneWidget);
+        expect(find.text('Item 45'), findsOneWidget);
       },
     );
 
@@ -799,7 +802,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Now the widget is on screen.
-      expect(find.text('Item b-45', skipOffstage: true), findsOneWidget);
+      expect(find.text('Item b-45'), findsOneWidget);
     });
   });
 }

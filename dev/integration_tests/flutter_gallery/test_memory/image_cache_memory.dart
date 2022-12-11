@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:flutter/scheduler.dart';
 // See //dev/devicelab/bin/tasks/flutter_gallery__image_cache_memory.dart
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Once we provide an option for images to be resized to
@@ -38,7 +38,7 @@ Future<void> main() async {
     ),
   ));
 
-  await SchedulerBinding.instance!.endOfFrame;
+  await SchedulerBinding.instance.endOfFrame;
 
   // We are waiting for the GPU to rasterize a frame here. This makes this
   // flaky, we can rely on a more deterministic source such as
@@ -48,7 +48,7 @@ Future<void> main() async {
   debugPrint('==== MEMORY BENCHMARK ==== READY ====');
 
   final WidgetController controller =
-      LiveWidgetController(WidgetsBinding.instance!);
+      LiveWidgetController(WidgetsBinding.instance);
 
   debugPrint('Scrolling...');
   final Finder list = find.byKey(const Key('ImageList'));

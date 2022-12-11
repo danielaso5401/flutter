@@ -4,7 +4,6 @@
 
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui show Image;
 
 import 'package:flutter/foundation.dart';
@@ -29,7 +28,7 @@ class TestImageProvider extends ImageProvider<TestImageProvider> {
   @override
   ImageStreamCompleter load(TestImageProvider key, DecoderCallback decode) {
     return OneFrameImageStreamCompleter(
-      future.then<ImageInfo>((void value) => ImageInfo(image: image))
+      future.then<ImageInfo>((void value) => ImageInfo(image: image)),
     );
   }
 }
@@ -138,12 +137,10 @@ Future<void> main() async {
     const Color black = Color(0xFF000000);
 
     await tester.pumpWidget(buildFrame(Border.all()));
-    expect(find.byKey(key), paints
-      ..rect(color: black, style: PaintingStyle.stroke, strokeWidth: 1.0));
+    expect(find.byKey(key), paints..rect(color: black, style: PaintingStyle.stroke, strokeWidth: 1.0));
 
     await tester.pumpWidget(buildFrame(Border.all(width: 0.0)));
-    expect(find.byKey(key), paints
-      ..rect(color: black, style: PaintingStyle.stroke, strokeWidth: 0.0));
+    expect(find.byKey(key), paints..rect(color: black, style: PaintingStyle.stroke, strokeWidth: 0.0));
 
     const Color green = Color(0xFF00FF00);
     const BorderSide greenSide = BorderSide(color: green, width: 10.0);
@@ -164,10 +161,13 @@ Future<void> main() async {
     const BorderSide blueSide = BorderSide(color: blue, width: 0.0);
 
     await tester.pumpWidget(buildFrame(const Border(top: blueSide, right: greenSide, bottom: greenSide)));
-    expect(find.byKey(key), paints
-      ..path() // There's not much point checking the arguments to these calls because paintBorder
-      ..path() // reuses the same Paint object each time, configured differently, and so they will
-      ..path()); // all appear to have the same settings here (that of the last call).
+    expect(
+      find.byKey(key),
+      paints
+        ..path() // There's not much point checking the arguments to these calls because paintBorder
+        ..path() // reuses the same Paint object each time, configured differently, and so they will
+        ..path(), // all appear to have the same settings here (that of the last call).
+    );
   });
 
   testWidgets('BoxDecoration paints its border correctly', (WidgetTester tester) async {
@@ -247,15 +247,11 @@ Future<void> main() async {
       ..drrect(
         outer: RRect.fromLTRBAndCorners(
           350.0, 200.0, 450.0, 300.0,
-          topLeft: Radius.zero,
           topRight: const Radius.circular(10.0),
-          bottomRight: Radius.zero,
-          bottomLeft: Radius.zero,
         ),
         inner: RRect.fromLTRBAndCorners(
           360.0, 210.0, 440.0, 290.0,
           topLeft: const Radius.circular(-10.0),
-          topRight: Radius.zero,
           bottomRight: const Radius.circular(-10.0),
           bottomLeft: const Radius.circular(-10.0),
         ),
@@ -353,7 +349,7 @@ Future<void> main() async {
             key: key,
             width: 100.0,
             height: 50.0,
-            decoration: BoxDecoration(border: border, shape: BoxShape.rectangle, borderRadius: BorderRadius.circular(20.0)),
+            decoration: BoxDecoration(border: border, borderRadius: const BorderRadius.all(Radius.circular(20.0))),
           ),
           onTap: () {
             itemsTapped.add(1);
@@ -390,18 +386,18 @@ Future<void> main() async {
       itemsTapped = <int>[];
       return Align(
         alignment: Alignment.topLeft,
-        child:GestureDetector(
+        child: GestureDetector(
           behavior: HitTestBehavior.deferToChild,
           child: Container(
             key: key,
             width: width,
             height: height,
-            decoration: BoxDecoration(border: border, shape: BoxShape.rectangle,borderRadius: BorderRadius.circular(radius))
+            decoration: BoxDecoration(border: border,borderRadius: BorderRadius.circular(radius)),
           ),
           onTap: () {
             itemsTapped.add(1);
           },
-        )
+        ),
       );
     }
 
@@ -423,16 +419,16 @@ Future<void> main() async {
     const Offset fartherBorderRadiusPoint = Offset(borderDiagonalOffset,borderDiagonalOffset);
 
     await tester.tapAt(topLeft);
-    expect(itemsTapped, isEmpty,reason: 'top left tapped');
+    expect(itemsTapped, isEmpty, reason: 'top left tapped');
 
     await tester.tapAt(borderTopTangent);
-    expect(itemsTapped, isEmpty,reason: 'border top tapped');
+    expect(itemsTapped, isEmpty, reason: 'border top tapped');
 
     await tester.tapAt(borderLeftTangent);
-    expect(itemsTapped, isEmpty,reason: 'border left tapped');
+    expect(itemsTapped, isEmpty, reason: 'border left tapped');
 
     await tester.tapAt(fartherBorderRadiusPoint);
-    expect(itemsTapped, isEmpty,reason: 'border center tapped');
+    expect(itemsTapped, isEmpty, reason: 'border center tapped');
 
     await tester.tap(find.byKey(key));
     expect(itemsTapped, <int>[1]);
@@ -449,19 +445,19 @@ Future<void> main() async {
     Widget buildFrame(Border border) {
       itemsTapped = <int>[];
       return Align(
-          alignment: Alignment.topLeft,
-          child:GestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            child: Container(
-                key: key,
-                width: width,
-                height: height,
-                decoration: BoxDecoration(border: border, shape: BoxShape.rectangle,borderRadius: BorderRadius.circular(radius))
-            ),
-            onTap: () {
-              itemsTapped.add(1);
-            },
-          )
+        alignment: Alignment.topLeft,
+        child: GestureDetector(
+          behavior: HitTestBehavior.deferToChild,
+          child: Container(
+            key: key,
+            width: width,
+            height: height,
+            decoration: BoxDecoration(border: border,borderRadius: BorderRadius.circular(radius)),
+          ),
+          onTap: () {
+            itemsTapped.add(1);
+          },
+        ),
       );
     }
 
@@ -475,13 +471,13 @@ Future<void> main() async {
     const Offset fartherBorderRadiusPoint = Offset(borderDiagonalOffset+1,borderDiagonalOffset+1);
 
     await tester.tapAt(borderTopTangent);
-    expect(itemsTapped, <int>[1],reason: 'border Top not tapped');
+    expect(itemsTapped, <int>[1], reason: 'border Top not tapped');
 
     await tester.tapAt(borderLeftTangent);
-    expect(itemsTapped, <int>[1,1],reason: 'border Left not tapped');
+    expect(itemsTapped, <int>[1,1], reason: 'border Left not tapped');
 
     await tester.tapAt(fartherBorderRadiusPoint);
-    expect(itemsTapped, <int>[1,1,1],reason: 'border center not tapped');
+    expect(itemsTapped, <int>[1,1,1], reason: 'border center not tapped');
 
     await tester.tap(find.byKey(key));
     expect(itemsTapped, <int>[1,1,1,1]);
@@ -497,19 +493,19 @@ Future<void> main() async {
     Widget buildFrame(Border border) {
       itemsTapped = <int>[];
       return Align(
-          alignment: Alignment.topLeft,
-          child:GestureDetector(
-            behavior: HitTestBehavior.deferToChild,
-            child: Container(
-                key: key,
-                width: width,
-                height: height,
-                decoration: BoxDecoration(border: border, shape: BoxShape.rectangle,borderRadius: BorderRadius.circular(radius))
-            ),
-            onTap: () {
-              itemsTapped.add(1);
-            },
-          )
+        alignment: Alignment.topLeft,
+        child: GestureDetector(
+          behavior: HitTestBehavior.deferToChild,
+          child: Container(
+            key: key,
+            width: width,
+            height: height,
+            decoration: BoxDecoration(border: border,borderRadius: BorderRadius.circular(radius)),
+          ),
+          onTap: () {
+            itemsTapped.add(1);
+          },
+        ),
       );
     }
 
@@ -531,27 +527,45 @@ Future<void> main() async {
     const Offset topLeftInside = Offset(radius, radius);
 
     await tester.tapAt(topRightInside);
-    expect(itemsTapped, <int>[1,1],reason: 'top right not tapped');
+    expect(itemsTapped, <int>[1,1], reason: 'top right not tapped');
 
     await tester.tapAt(topRightOutside);
-    expect(itemsTapped, <int>[1,1],reason: 'top right tapped');
+    expect(itemsTapped, <int>[1,1], reason: 'top right tapped');
 
     await tester.tapAt(bottomRightInside);
-    expect(itemsTapped, <int>[1,1,1],reason: 'bottom right not tapped');
+    expect(itemsTapped, <int>[1,1,1], reason: 'bottom right not tapped');
 
     await tester.tapAt(bottomRightOutside);
-    expect(itemsTapped, <int>[1,1,1],reason: 'bottom right tapped');
+    expect(itemsTapped, <int>[1,1,1], reason: 'bottom right tapped');
 
     await tester.tapAt(bottomLeftInside);
-    expect(itemsTapped, <int>[1,1,1,1],reason: 'bottom left not tapped');
+    expect(itemsTapped, <int>[1,1,1,1], reason: 'bottom left not tapped');
 
     await tester.tapAt(bottomLeftOutside);
-    expect(itemsTapped, <int>[1,1,1,1],reason: 'bottom left tapped');
+    expect(itemsTapped, <int>[1,1,1,1], reason: 'bottom left tapped');
 
     await tester.tapAt(topLeftInside);
-    expect(itemsTapped, <int>[1,1,1,1,1],reason: 'top left not tapped');
+    expect(itemsTapped, <int>[1,1,1,1,1], reason: 'top left not tapped');
 
     await tester.tapAt(topLeftOutside);
-    expect(itemsTapped, <int>[1,1,1,1,1],reason: 'top left tapped');
+    expect(itemsTapped, <int>[1,1,1,1,1], reason: 'top left tapped');
+  });
+
+  testWidgets("BoxDecoration doesn't crash with BorderRadiusDirectional", (WidgetTester tester) async {
+    // Regression test for https://github.com/flutter/flutter/issues/88039
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(),
+            borderRadius: const BorderRadiusDirectional.all(
+              Radius.circular(1.0),
+            ),
+          ),
+        ),
+      ),
+    );
   });
 }

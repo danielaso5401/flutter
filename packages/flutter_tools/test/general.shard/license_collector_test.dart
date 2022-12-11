@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import 'package:file/memory.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/convert.dart';
@@ -241,8 +239,8 @@ const String _kApacheLicense = r'''
 ''';
 
 void main() {
-  FileSystem fileSystem;
-  LicenseCollector licenseCollector;
+  late FileSystem fileSystem;
+  late LicenseCollector licenseCollector;
 
   setUp(() {
     fileSystem = MemoryFileSystem.test();
@@ -273,19 +271,19 @@ void main() {
               'name': 'foo',
               'rootUri': 'file:///foo/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
             <String, Object>{
               'name': 'bar',
               'rootUri': 'file:///bar/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
             <String, Object>{
               'name': 'fizz',
               'rootUri': 'file:///fizz/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
           ],
         }
@@ -308,7 +306,7 @@ void main() {
     expect(filePaths, unorderedEquals(<String>[
       '/foo/NOTICES',
       '/bar/NOTICES',
-      '/fizz/LICENSE'
+      '/fizz/LICENSE',
     ]));
   });
 
@@ -331,13 +329,13 @@ void main() {
               'name': 'foo',
               'rootUri': 'file:///foo/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
             <String, Object>{
               'name': 'bar',
               'rootUri': 'file:///bar/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
           ],
         }
@@ -378,7 +376,7 @@ void main() {
               'name': 'foo',
               'rootUri': 'file:///foo/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
           ],
         }
@@ -393,7 +391,7 @@ void main() {
     expect(licenseResult.dependencies, isEmpty);
     expect(licenseResult.errorMessages, <String>[
       'package foo specified an additional license at /foo.txt, but this file does not exist.',
-      'package foo specified an additional license at /foo_2.txt, but this file does not exist.'
+      'package foo specified an additional license at /foo_2.txt, but this file does not exist.',
     ]);
   });
 
@@ -414,7 +412,7 @@ void main() {
               'name': 'foo',
               'rootUri': 'file:///foo/',
               'packageUri': 'lib/',
-              'languageVersion': '2.2'
+              'languageVersion': '2.2',
             },
           ],
         }
@@ -429,7 +427,7 @@ void main() {
     expect(licenseResult.dependencies, isEmpty);
     expect(licenseResult.errorMessages.single,
       'package foo specified an additional license at /foo.txt, but this file could not be read:'
-      '\nFileSystemException: Invalid UTF-8 byte, path = \'/foo.txt\'',
+      "\nFileSystemException: Invalid UTF-8 byte, path = '/foo.txt'",
     );
   });
 }

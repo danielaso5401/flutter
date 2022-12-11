@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 
 import 'basic.dart';
 import 'framework.dart';
+import 'media_query.dart';
 
 export 'package:flutter/gestures.dart' show
   DragDownDetails,
@@ -114,6 +115,8 @@ class GestureRecognizerFactoryWithHandlers<T extends GestureRecognizer> extends 
 /// If this widget has a child, it defers to that child for its sizing behavior.
 /// If it does not have a child, it grows to fit the parent instead.
 ///
+/// {@youtube 560 315 https://www.youtube.com/watch?v=WhVXkCFPmK4}
+///
 /// By default a GestureDetector with an invisible child ignores touches;
 /// this behavior can be controlled with [behavior].
 ///
@@ -127,68 +130,74 @@ class GestureRecognizerFactoryWithHandlers<T extends GestureRecognizer> extends 
 /// effects. The [InkWell] class implements this effect and can be used in place
 /// of a [GestureDetector] for handling taps.
 ///
-/// {@animation 200 150 https://flutter.github.io/assets-for-api-docs/assets/widgets/gesture_detector.mp4}
+/// {@tool dartpad}
+/// This example contains a black light bulb wrapped in a [GestureDetector]. It
+/// turns the light bulb yellow when the "TURN LIGHT ON" button is tapped by
+/// setting the `_lights` field, and off again when "TURN LIGHT OFF" is tapped.
 ///
-/// {@tool snippet}
-///
-/// This example of a [Container] contains a black light bulb wrapped in a [GestureDetector].
-/// It turns the light bulb yellow when the "turn lights on" button is tapped
-/// by setting the `_lights` field. Above animation shows the code in use:
-///
-/// ```dart
-/// Container(
-///   alignment: FractionalOffset.center,
-///   color: Colors.white,
-///   child: Column(
-///     mainAxisAlignment: MainAxisAlignment.center,
-///     children: <Widget>[
-///       Padding(
-///         padding: const EdgeInsets.all(8.0),
-///         child: Icon(
-///           Icons.lightbulb_outline,
-///           color: _lights ? Colors.yellow.shade600 : Colors.black,
-///           size: 60,
-///         ),
-///       ),
-///       GestureDetector(
-///         onTap: () {
-///           setState(() {
-///             _lights = true;
-///           });
-///         },
-///         child: Container(
-///           color: Colors.yellow.shade600,
-///           padding: const EdgeInsets.all(8),
-///           child: const Text('TURN LIGHTS ON'),
-///         ),
-///       ),
-///     ],
-///   ),
-/// )
-/// ```
+/// ** See code in examples/api/lib/widgets/gesture_detector/gesture_detector.0.dart **
 /// {@end-tool}
 ///
-/// {@tool snippet}
+/// {@tool dartpad}
+/// This example uses a [Container] that wraps a [GestureDetector] widget which
+/// detects a tap.
 ///
-/// This example of a [Container] wraps a [GestureDetector] widget.
-/// Since the [GestureDetector] does not have a child it takes on the size of
-/// its parent making the entire area of the surrounding [Container] clickable.
-/// When tapped the [Container] turns yellow by setting the `_color` field:
+/// Since the [GestureDetector] does not have a child, it takes on the size of its
+/// parent, making the entire area of the surrounding [Container] clickable. When
+/// tapped, the [Container] turns yellow by setting the `_color` field. When
+/// tapped again, it goes back to white.
 ///
-/// ```dart
-/// Container(
-///   color: _color,
-///   height: 200.0,
-///   width: 200.0,
-///   child: GestureDetector(
-///     onTap: () {
-///       setState(() {
-///         _color = Colors.yellow;
-///       });
-///     },
-///   ),
-/// )
-/// ```
+/// ** See code in examples/api/lib/widgets/gesture_detector/gesture_detector.1.dart **
+/// {@end-tool}
+///
+/// ### Troubleshooting
+///
+/// Why isn't my parent [GestureDetector.onTap] method called?
+///
+/// Given a parent [GestureDetector] with an onTap callback, and a child
+/// GestureDetector that also defines an onTap callback, when the inner
+/// GestureDetector is tapped, both GestureDetectors send a [GestureRecognizer]
+/// into the gesture arena. This is because the pointer coordinates are within the
+/// bounds of both GestureDetectors. The child GestureDetector wins in this
+/// scenario because it was the first to enter the arena, resolving as first come,
+/// first served. The child onTap is called, and the parent's is not as the gesture has
+/// been consumed.
+/// For more information on gesture disambiguation see:
+/// [Gesture disambiguation](https://docs.flutter.dev/development/ui/advanced/gestures#gesture-disambiguation).
+///
+/// Setting [GestureDetector.behavior] to [HitTestBehavior.opaque]
+/// or [HitTestBehavior.translucent] has no impact on parent-child relationships:
+/// both GestureDetectors send a GestureRecognizer into the gesture arena, only one wins.
+///
+/// Some callbacks (e.g. onTapDown) can fire before a recognizer wins the arena,
+/// and others (e.g. onTapCancel) fire even when it loses the arena. Therefore,
+/// the parent detector in the example above may call some of its callbacks even
+/// though it loses in the arena.
+///
+/// {@tool dartpad}
+/// This example uses a [GestureDetector] that wraps a green [Container] and a second
+/// GestureDetector that wraps a yellow Container. The second GestureDetector is
+/// a child of the green Container.
+/// Both GestureDetectors define an onTap callback. When the callback is called it
+/// adds a red border to the corresponding Container.
+///
+/// When the green Container is tapped, it's parent GestureDetector enters
+/// the gesture arena. It wins because there is no competing GestureDetector and
+/// the green Container shows a red border.
+/// When the yellow Container is tapped, it's parent GestureDetector enters
+/// the gesture arena. The GestureDetector that wraps the green Container also
+/// enters the gesture arena (the pointer events coordinates are inside both
+/// GestureDetectors bounds). The GestureDetector that wraps the yellow Container
+/// wins because it was the first detector to enter the arena.
+///
+/// This example sets [debugPrintGestureArenaDiagnostics] to true.
+/// This flag prints useful information about gesture arenas.
+///
+/// Changing the [GestureDetector.behavior] property to [HitTestBehavior.translucent]
+/// or [HitTestBehavior.opaque] has no impact: both GestureDetectors send a [GestureRecognizer]
+/// into the gesture arena, only one wins.
+///
+/// ** See code in examples/api/lib/widgets/gesture_detector/gesture_detector.2.dart **
 /// {@end-tool}
 ///
 /// ## Debugging
@@ -201,6 +210,7 @@ class GestureRecognizerFactoryWithHandlers<T extends GestureRecognizer> extends 
 ///  * [Listener], a widget for listening to lower-level raw pointer events.
 ///  * [MouseRegion], a widget that tracks the movement of mice, even when no
 ///    button is pressed.
+///  * [RawGestureDetector], a widget that is used to detect custom gestures.
 class GestureDetector extends StatelessWidget {
   /// Creates a widget that detects gestures.
   ///
@@ -211,10 +221,12 @@ class GestureDetector extends StatelessWidget {
   /// because a combination of a horizontal and vertical drag is a pan. Simply
   /// use the pan callbacks instead.
   ///
+  /// {@youtube 560 315 https://www.youtube.com/watch?v=WhVXkCFPmK4}
+  ///
   /// By default, gesture detectors contribute semantic information to the tree
   /// that is used by assistive technology.
   GestureDetector({
-    Key? key,
+    super.key,
     this.child,
     this.onTapDown,
     this.onTapUp,
@@ -230,16 +242,27 @@ class GestureDetector extends StatelessWidget {
     this.onDoubleTapDown,
     this.onDoubleTap,
     this.onDoubleTapCancel,
+    this.onLongPressDown,
+    this.onLongPressCancel,
     this.onLongPress,
     this.onLongPressStart,
     this.onLongPressMoveUpdate,
     this.onLongPressUp,
     this.onLongPressEnd,
+    this.onSecondaryLongPressDown,
+    this.onSecondaryLongPressCancel,
     this.onSecondaryLongPress,
     this.onSecondaryLongPressStart,
     this.onSecondaryLongPressMoveUpdate,
     this.onSecondaryLongPressUp,
     this.onSecondaryLongPressEnd,
+    this.onTertiaryLongPressDown,
+    this.onTertiaryLongPressCancel,
+    this.onTertiaryLongPress,
+    this.onTertiaryLongPressStart,
+    this.onTertiaryLongPressMoveUpdate,
+    this.onTertiaryLongPressUp,
+    this.onTertiaryLongPressEnd,
     this.onVerticalDragDown,
     this.onVerticalDragStart,
     this.onVerticalDragUpdate,
@@ -292,8 +315,7 @@ class GestureDetector extends StatelessWidget {
            }
          }
          return true;
-       }()),
-       super(key: key);
+       }());
 
   /// The widget below this widget in the tree.
   ///
@@ -458,15 +480,55 @@ class GestureDetector extends StatelessWidget {
   ///  * [kPrimaryButton], the button this callback responds to.
   final GestureTapCancelCallback? onDoubleTapCancel;
 
+  /// The pointer has contacted the screen with a primary button, which might
+  /// be the start of a long-press.
+  ///
+  /// This triggers after the pointer down event.
+  ///
+  /// If the user completes the long-press, and this gesture wins,
+  /// [onLongPressStart] will be called after this callback. Otherwise,
+  /// [onLongPressCancel] will be called after this callback.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [onSecondaryLongPressDown], a similar callback but for a secondary button.
+  ///  * [onTertiaryLongPressDown], a similar callback but for a tertiary button.
+  ///  * [LongPressGestureRecognizer.onLongPressDown], which exposes this
+  ///    callback at the gesture layer.
+  final GestureLongPressDownCallback? onLongPressDown;
+
+  /// A pointer that previously triggered [onLongPressDown] will not end up
+  /// causing a long-press.
+  ///
+  /// This triggers once the gesture loses if [onLongPressDown] has previously
+  /// been triggered.
+  ///
+  /// If the user completed the long-press, and the gesture won, then
+  /// [onLongPressStart] and [onLongPress] are called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onLongPressCancel], which exposes this
+  ///    callback at the gesture layer.
+  final GestureLongPressCancelCallback? onLongPressCancel;
+
   /// Called when a long press gesture with a primary button has been recognized.
   ///
   /// Triggered when a pointer has remained in contact with the screen at the
   /// same location for a long period of time.
   ///
+  /// This is equivalent to (and is called immediately after) [onLongPressStart].
+  /// The only difference between the two is that this callback does not
+  /// contain details of the position at which the pointer initially contacted
+  /// the screen.
+  ///
   /// See also:
   ///
   ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onLongPressStart], which has the same timing but has gesture details.
+  ///  * [LongPressGestureRecognizer.onLongPress], which exposes this
+  ///    callback at the gesture layer.
   final GestureLongPressCallback? onLongPress;
 
   /// Called when a long press gesture with a primary button has been recognized.
@@ -474,37 +536,90 @@ class GestureDetector extends StatelessWidget {
   /// Triggered when a pointer has remained in contact with the screen at the
   /// same location for a long period of time.
   ///
+  /// This is equivalent to (and is called immediately before) [onLongPress].
+  /// The only difference between the two is that this callback contains
+  /// details of the position at which the pointer initially contacted the
+  /// screen, whereas [onLongPress] does not.
+  ///
   /// See also:
   ///
   ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onLongPress], which has the same timing but without the gesture details.
+  ///  * [LongPressGestureRecognizer.onLongPressStart], which exposes this
+  ///    callback at the gesture layer.
   final GestureLongPressStartCallback? onLongPressStart;
 
-  /// A pointer has been drag-moved after a long press with a primary button.
+  /// A pointer has been drag-moved after a long-press with a primary button.
   ///
   /// See also:
   ///
   ///  * [kPrimaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onLongPressMoveUpdate], which exposes this
+  ///    callback at the gesture layer.
   final GestureLongPressMoveUpdateCallback? onLongPressMoveUpdate;
 
   /// A pointer that has triggered a long-press with a primary button has
   /// stopped contacting the screen.
   ///
+  /// This is equivalent to (and is called immediately after) [onLongPressEnd].
+  /// The only difference between the two is that this callback does not
+  /// contain details of the state of the pointer when it stopped contacting
+  /// the screen.
+  ///
   /// See also:
   ///
   ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onLongPressEnd], which has the same timing but has gesture details.
+  ///  * [LongPressGestureRecognizer.onLongPressUp], which exposes this
+  ///    callback at the gesture layer.
   final GestureLongPressUpCallback? onLongPressUp;
 
   /// A pointer that has triggered a long-press with a primary button has
   /// stopped contacting the screen.
   ///
+  /// This is equivalent to (and is called immediately before) [onLongPressUp].
+  /// The only difference between the two is that this callback contains
+  /// details of the state of the pointer when it stopped contacting the
+  /// screen, whereas [onLongPressUp] does not.
+  ///
   /// See also:
   ///
   ///  * [kPrimaryButton], the button this callback responds to.
-  ///  * [onLongPressUp], which has the same timing but without the gesture
-  ///    details.
+  ///  * [LongPressGestureRecognizer.onLongPressEnd], which exposes this
+  ///    callback at the gesture layer.
   final GestureLongPressEndCallback? onLongPressEnd;
+
+  /// The pointer has contacted the screen with a secondary button, which might
+  /// be the start of a long-press.
+  ///
+  /// This triggers after the pointer down event.
+  ///
+  /// If the user completes the long-press, and this gesture wins,
+  /// [onSecondaryLongPressStart] will be called after this callback. Otherwise,
+  /// [onSecondaryLongPressCancel] will be called after this callback.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [onLongPressDown], a similar callback but for a secondary button.
+  ///  * [onTertiaryLongPressDown], a similar callback but for a tertiary button.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressDown], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressDownCallback? onSecondaryLongPressDown;
+
+  /// A pointer that previously triggered [onSecondaryLongPressDown] will not
+  /// end up causing a long-press.
+  ///
+  /// This triggers once the gesture loses if [onSecondaryLongPressDown] has
+  /// previously been triggered.
+  ///
+  /// If the user completed the long-press, and the gesture won, then
+  /// [onSecondaryLongPressStart] and [onSecondaryLongPress] are called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressCancel], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressCancelCallback? onSecondaryLongPressCancel;
 
   /// Called when a long press gesture with a secondary button has been
   /// recognized.
@@ -512,11 +627,16 @@ class GestureDetector extends StatelessWidget {
   /// Triggered when a pointer has remained in contact with the screen at the
   /// same location for a long period of time.
   ///
+  /// This is equivalent to (and is called immediately after)
+  /// [onSecondaryLongPressStart]. The only difference between the two is that
+  /// this callback does not contain details of the position at which the
+  /// pointer initially contacted the screen.
+  ///
   /// See also:
   ///
   ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onSecondaryLongPressStart], which has the same timing but has gesture
-  ///    details.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPress], which exposes
+  ///    this callback at the gesture layer.
   final GestureLongPressCallback? onSecondaryLongPress;
 
   /// Called when a long press gesture with a secondary button has been
@@ -525,11 +645,16 @@ class GestureDetector extends StatelessWidget {
   /// Triggered when a pointer has remained in contact with the screen at the
   /// same location for a long period of time.
   ///
+  /// This is equivalent to (and is called immediately before)
+  /// [onSecondaryLongPress]. The only difference between the two is that this
+  /// callback contains details of the position at which the pointer initially
+  /// contacted the screen, whereas [onSecondaryLongPress] does not.
+  ///
   /// See also:
   ///
   ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onSecondaryLongPress], which has the same timing but without the
-  ///    gesture details.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressStart], which exposes
+  ///    this callback at the gesture layer.
   final GestureLongPressStartCallback? onSecondaryLongPressStart;
 
   /// A pointer has been drag-moved after a long press with a secondary button.
@@ -537,27 +662,148 @@ class GestureDetector extends StatelessWidget {
   /// See also:
   ///
   ///  * [kSecondaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressMoveUpdate], which exposes
+  ///    this callback at the gesture layer.
   final GestureLongPressMoveUpdateCallback? onSecondaryLongPressMoveUpdate;
 
   /// A pointer that has triggered a long-press with a secondary button has
   /// stopped contacting the screen.
   ///
+  /// This is equivalent to (and is called immediately after)
+  /// [onSecondaryLongPressEnd]. The only difference between the two is that
+  /// this callback does not contain details of the state of the pointer when
+  /// it stopped contacting the screen.
+  ///
   /// See also:
   ///
   ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onSecondaryLongPressEnd], which has the same timing but has gesture
-  ///    details.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressUp], which exposes
+  ///    this callback at the gesture layer.
   final GestureLongPressUpCallback? onSecondaryLongPressUp;
 
   /// A pointer that has triggered a long-press with a secondary button has
   /// stopped contacting the screen.
   ///
+  /// This is equivalent to (and is called immediately before)
+  /// [onSecondaryLongPressUp]. The only difference between the two is that
+  /// this callback contains details of the state of the pointer when it
+  /// stopped contacting the screen, whereas [onSecondaryLongPressUp] does not.
+  ///
   /// See also:
   ///
   ///  * [kSecondaryButton], the button this callback responds to.
-  ///  * [onSecondaryLongPressUp], which has the same timing but without the
-  ///    gesture details.
+  ///  * [LongPressGestureRecognizer.onSecondaryLongPressEnd], which exposes
+  ///    this callback at the gesture layer.
   final GestureLongPressEndCallback? onSecondaryLongPressEnd;
+
+  /// The pointer has contacted the screen with a tertiary button, which might
+  /// be the start of a long-press.
+  ///
+  /// This triggers after the pointer down event.
+  ///
+  /// If the user completes the long-press, and this gesture wins,
+  /// [onTertiaryLongPressStart] will be called after this callback. Otherwise,
+  /// [onTertiaryLongPressCancel] will be called after this callback.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [onLongPressDown], a similar callback but for a primary button.
+  ///  * [onSecondaryLongPressDown], a similar callback but for a secondary button.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressDown], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressDownCallback? onTertiaryLongPressDown;
+
+  /// A pointer that previously triggered [onTertiaryLongPressDown] will not
+  /// end up causing a long-press.
+  ///
+  /// This triggers once the gesture loses if [onTertiaryLongPressDown] has
+  /// previously been triggered.
+  ///
+  /// If the user completed the long-press, and the gesture won, then
+  /// [onTertiaryLongPressStart] and [onTertiaryLongPress] are called instead.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressCancel], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressCancelCallback? onTertiaryLongPressCancel;
+
+  /// Called when a long press gesture with a tertiary button has been
+  /// recognized.
+  ///
+  /// Triggered when a pointer has remained in contact with the screen at the
+  /// same location for a long period of time.
+  ///
+  /// This is equivalent to (and is called immediately after)
+  /// [onTertiaryLongPressStart]. The only difference between the two is that
+  /// this callback does not contain details of the position at which the
+  /// pointer initially contacted the screen.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPress], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressCallback? onTertiaryLongPress;
+
+  /// Called when a long press gesture with a tertiary button has been
+  /// recognized.
+  ///
+  /// Triggered when a pointer has remained in contact with the screen at the
+  /// same location for a long period of time.
+  ///
+  /// This is equivalent to (and is called immediately before)
+  /// [onTertiaryLongPress]. The only difference between the two is that this
+  /// callback contains details of the position at which the pointer initially
+  /// contacted the screen, whereas [onTertiaryLongPress] does not.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressStart], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressStartCallback? onTertiaryLongPressStart;
+
+  /// A pointer has been drag-moved after a long press with a tertiary button.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressMoveUpdate], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressMoveUpdateCallback? onTertiaryLongPressMoveUpdate;
+
+  /// A pointer that has triggered a long-press with a tertiary button has
+  /// stopped contacting the screen.
+  ///
+  /// This is equivalent to (and is called immediately after)
+  /// [onTertiaryLongPressEnd]. The only difference between the two is that
+  /// this callback does not contain details of the state of the pointer when
+  /// it stopped contacting the screen.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressUp], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressUpCallback? onTertiaryLongPressUp;
+
+  /// A pointer that has triggered a long-press with a tertiary button has
+  /// stopped contacting the screen.
+  ///
+  /// This is equivalent to (and is called immediately before)
+  /// [onTertiaryLongPressUp]. The only difference between the two is that
+  /// this callback contains details of the state of the pointer when it
+  /// stopped contacting the screen, whereas [onTertiaryLongPressUp] does not.
+  ///
+  /// See also:
+  ///
+  ///  * [kTertiaryButton], the button this callback responds to.
+  ///  * [LongPressGestureRecognizer.onTertiaryLongPressEnd], which exposes
+  ///    this callback at the gesture layer.
+  final GestureLongPressEndCallback? onTertiaryLongPressEnd;
 
   /// A pointer has contacted the screen with a primary button and might begin
   /// to move vertically.
@@ -739,8 +985,9 @@ class GestureDetector extends StatelessWidget {
   /// Determines the way that drag start behavior is handled.
   ///
   /// If set to [DragStartBehavior.start], gesture drag behavior will
-  /// begin upon the detection of a drag gesture. If set to
-  /// [DragStartBehavior.down] it will begin when a down event is first detected.
+  /// begin at the position where the drag gesture won the arena. If set to
+  /// [DragStartBehavior.down] it will begin at the position where a down event
+  /// is first detected.
   ///
   /// In general, setting this to [DragStartBehavior.start] will make drag
   /// animation smoother and setting it to [DragStartBehavior.down] will make
@@ -760,6 +1007,7 @@ class GestureDetector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Map<Type, GestureRecognizerFactory> gestures = <Type, GestureRecognizerFactory>{};
+    final DeviceGestureSettings? gestureSettings = MediaQuery.maybeOf(context)?.gestureSettings;
 
     if (onTapDown != null ||
         onTapUp != null ||
@@ -787,7 +1035,8 @@ class GestureDetector extends StatelessWidget {
             ..onSecondaryTapCancel = onSecondaryTapCancel
             ..onTertiaryTapDown = onTertiaryTapDown
             ..onTertiaryTapUp = onTertiaryTapUp
-            ..onTertiaryTapCancel = onTertiaryTapCancel;
+            ..onTertiaryTapCancel = onTertiaryTapCancel
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -799,35 +1048,59 @@ class GestureDetector extends StatelessWidget {
           instance
             ..onDoubleTapDown = onDoubleTapDown
             ..onDoubleTap = onDoubleTap
-            ..onDoubleTapCancel = onDoubleTapCancel;
+            ..onDoubleTapCancel = onDoubleTapCancel
+            ..gestureSettings = gestureSettings;
         },
       );
     }
 
-    if (onLongPress != null ||
-        onLongPressUp != null ||
+    if (onLongPressDown != null ||
+        onLongPressCancel != null ||
+        onLongPress != null ||
         onLongPressStart != null ||
         onLongPressMoveUpdate != null ||
+        onLongPressUp != null ||
         onLongPressEnd != null ||
+        onSecondaryLongPressDown != null ||
+        onSecondaryLongPressCancel != null ||
         onSecondaryLongPress != null ||
-        onSecondaryLongPressUp != null ||
         onSecondaryLongPressStart != null ||
         onSecondaryLongPressMoveUpdate != null ||
-        onSecondaryLongPressEnd != null) {
+        onSecondaryLongPressUp != null ||
+        onSecondaryLongPressEnd != null ||
+        onTertiaryLongPressDown != null ||
+        onTertiaryLongPressCancel != null ||
+        onTertiaryLongPress != null ||
+        onTertiaryLongPressStart != null ||
+        onTertiaryLongPressMoveUpdate != null ||
+        onTertiaryLongPressUp != null ||
+        onTertiaryLongPressEnd != null) {
       gestures[LongPressGestureRecognizer] = GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
         () => LongPressGestureRecognizer(debugOwner: this),
         (LongPressGestureRecognizer instance) {
           instance
+            ..onLongPressDown = onLongPressDown
+            ..onLongPressCancel = onLongPressCancel
             ..onLongPress = onLongPress
             ..onLongPressStart = onLongPressStart
             ..onLongPressMoveUpdate = onLongPressMoveUpdate
-            ..onLongPressEnd = onLongPressEnd
             ..onLongPressUp = onLongPressUp
+            ..onLongPressEnd = onLongPressEnd
+            ..onSecondaryLongPressDown = onSecondaryLongPressDown
+            ..onSecondaryLongPressCancel = onSecondaryLongPressCancel
             ..onSecondaryLongPress = onSecondaryLongPress
             ..onSecondaryLongPressStart = onSecondaryLongPressStart
             ..onSecondaryLongPressMoveUpdate = onSecondaryLongPressMoveUpdate
+            ..onSecondaryLongPressUp = onSecondaryLongPressUp
             ..onSecondaryLongPressEnd = onSecondaryLongPressEnd
-            ..onSecondaryLongPressUp = onSecondaryLongPressUp;
+            ..onTertiaryLongPressDown = onTertiaryLongPressDown
+            ..onTertiaryLongPressCancel = onTertiaryLongPressCancel
+            ..onTertiaryLongPress = onTertiaryLongPress
+            ..onTertiaryLongPressStart = onTertiaryLongPressStart
+            ..onTertiaryLongPressMoveUpdate = onTertiaryLongPressMoveUpdate
+            ..onTertiaryLongPressUp = onTertiaryLongPressUp
+            ..onTertiaryLongPressEnd = onTertiaryLongPressEnd
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -846,7 +1119,8 @@ class GestureDetector extends StatelessWidget {
             ..onUpdate = onVerticalDragUpdate
             ..onEnd = onVerticalDragEnd
             ..onCancel = onVerticalDragCancel
-            ..dragStartBehavior = dragStartBehavior;
+            ..dragStartBehavior = dragStartBehavior
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -865,7 +1139,8 @@ class GestureDetector extends StatelessWidget {
             ..onUpdate = onHorizontalDragUpdate
             ..onEnd = onHorizontalDragEnd
             ..onCancel = onHorizontalDragCancel
-            ..dragStartBehavior = dragStartBehavior;
+            ..dragStartBehavior = dragStartBehavior
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -884,7 +1159,8 @@ class GestureDetector extends StatelessWidget {
             ..onUpdate = onPanUpdate
             ..onEnd = onPanEnd
             ..onCancel = onPanCancel
-            ..dragStartBehavior = dragStartBehavior;
+            ..dragStartBehavior = dragStartBehavior
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -897,7 +1173,8 @@ class GestureDetector extends StatelessWidget {
             ..onStart = onScaleStart
             ..onUpdate = onScaleUpdate
             ..onEnd = onScaleEnd
-            ..dragStartBehavior = dragStartBehavior;
+            ..dragStartBehavior = dragStartBehavior
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -913,7 +1190,8 @@ class GestureDetector extends StatelessWidget {
             ..onStart = onForcePressStart
             ..onPeak = onForcePressPeak
             ..onUpdate = onForcePressUpdate
-            ..onEnd = onForcePressEnd;
+            ..onEnd = onForcePressEnd
+            ..gestureSettings = gestureSettings;
         },
       );
     }
@@ -980,15 +1258,14 @@ class RawGestureDetector extends StatefulWidget {
   /// used by assistive technology. The behavior can be configured by
   /// [semantics], or disabled with [excludeFromSemantics].
   const RawGestureDetector({
-    Key? key,
+    super.key,
     this.child,
     this.gestures = const <Type, GestureRecognizerFactory>{},
     this.behavior,
     this.excludeFromSemantics = false,
     this.semantics,
   }) : assert(gestures != null),
-       assert(excludeFromSemantics != null),
-       super(key: key);
+       assert(excludeFromSemantics != null);
 
   /// The widget below this widget in the tree.
   ///
@@ -1029,7 +1306,8 @@ class RawGestureDetector extends StatefulWidget {
   ///  * During a semantic tap, it calls [TapGestureRecognizer]'s
   ///    `onTapDown`, `onTapUp`, and `onTap`.
   ///  * During a semantic long press, it calls [LongPressGestureRecognizer]'s
-  ///    `onLongPressStart`, `onLongPress`, `onLongPressEnd` and `onLongPressUp`.
+  ///    `onLongPressDown`, `onLongPressStart`, `onLongPress`, `onLongPressEnd`
+  ///    and `onLongPressUp`.
   ///  * During a semantic horizontal drag, it calls [HorizontalDragGestureRecognizer]'s
   ///    `onDown`, `onStart`, `onUpdate` and `onEnd`, then
   ///    [PanGestureRecognizer]'s `onDown`, `onStart`, `onUpdate` and `onEnd`.
@@ -1044,10 +1322,10 @@ class RawGestureDetector extends StatefulWidget {
   /// ```dart
   /// class ForcePressGestureDetectorWithSemantics extends StatelessWidget {
   ///   const ForcePressGestureDetectorWithSemantics({
-  ///     Key? key,
+  ///     super.key,
   ///     required this.child,
   ///     required this.onForcePress,
-  ///   }) : super(key: key);
+  ///   });
   ///
   ///   final Widget child;
   ///   final VoidCallback onForcePress;
@@ -1156,8 +1434,9 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
   /// If this is never called, then the actions are not filtered. If the list of
   /// actions to filter changes, it must be called again.
   void replaceSemanticsActions(Set<SemanticsAction> actions) {
-    if (widget.excludeFromSemantics)
+    if (widget.excludeFromSemantics) {
       return;
+    }
 
     final RenderSemanticsGestureHandler? semanticsGestureHandler = context.findRenderObject() as RenderSemanticsGestureHandler?;
     assert(() {
@@ -1175,8 +1454,9 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
 
   @override
   void dispose() {
-    for (final GestureRecognizer recognizer in _recognizers!.values)
+    for (final GestureRecognizer recognizer in _recognizers!.values) {
       recognizer.dispose();
+    }
     _recognizers = null;
     super.dispose();
   }
@@ -1194,15 +1474,24 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
       gestures[type]!.initializer(_recognizers![type]!);
     }
     for (final Type type in oldRecognizers.keys) {
-      if (!_recognizers!.containsKey(type))
+      if (!_recognizers!.containsKey(type)) {
         oldRecognizers[type]!.dispose();
+      }
     }
   }
 
   void _handlePointerDown(PointerDownEvent event) {
     assert(_recognizers != null);
-    for (final GestureRecognizer recognizer in _recognizers!.values)
+    for (final GestureRecognizer recognizer in _recognizers!.values) {
       recognizer.addPointer(event);
+    }
+  }
+
+  void _handlePointerPanZoomStart(PointerPanZoomStartEvent event) {
+    assert(_recognizers != null);
+    for (final GestureRecognizer recognizer in _recognizers!.values) {
+      recognizer.addPointerPanZoom(event);
+    }
   }
 
   HitTestBehavior get _defaultBehavior {
@@ -1219,6 +1508,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
   Widget build(BuildContext context) {
     Widget result = Listener(
       onPointerDown: _handlePointerDown,
+      onPointerPanZoomStart: _handlePointerPanZoomStart,
       behavior: widget.behavior ?? _defaultBehavior,
       child: widget.child,
     );
@@ -1254,12 +1544,10 @@ typedef _AssignSemantics = void Function(RenderSemanticsGestureHandler);
 
 class _GestureSemantics extends SingleChildRenderObjectWidget {
   const _GestureSemantics({
-    Key? key,
-    Widget? child,
+    super.child,
     required this.behavior,
     required this.assignSemantics,
-  }) : assert(assignSemantics != null),
-       super(key: key, child: child);
+  }) : assert(assignSemantics != null);
 
   final HitTestBehavior behavior;
   final _AssignSemantics assignSemantics;
@@ -1327,8 +1615,9 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
 
   GestureTapCallback? _getTapHandler(Map<Type, GestureRecognizer> recognizers) {
     final TapGestureRecognizer? tap = recognizers[TapGestureRecognizer] as TapGestureRecognizer?;
-    if (tap == null)
+    if (tap == null) {
       return null;
+    }
 
     return () {
       assert(tap != null);
@@ -1340,10 +1629,12 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
 
   GestureLongPressCallback? _getLongPressHandler(Map<Type, GestureRecognizer> recognizers) {
     final LongPressGestureRecognizer? longPress = recognizers[LongPressGestureRecognizer] as LongPressGestureRecognizer?;
-    if (longPress == null)
+    if (longPress == null) {
       return null;
+    }
 
     return () {
+      longPress.onLongPressDown?.call(const LongPressDownDetails());
       longPress.onLongPressStart?.call(const LongPressStartDetails());
       longPress.onLongPress?.call();
       longPress.onLongPressEnd?.call(const LongPressEndDetails());
@@ -1373,13 +1664,16 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
         pan.onEnd?.call(DragEndDetails());
       };
 
-    if (horizontalHandler == null && panHandler == null)
+    if (horizontalHandler == null && panHandler == null) {
       return null;
+    }
     return (DragUpdateDetails details) {
-      if (horizontalHandler != null)
+      if (horizontalHandler != null) {
         horizontalHandler(details);
-      if (panHandler != null)
+      }
+      if (panHandler != null) {
         panHandler(details);
+      }
     };
   }
 
@@ -1405,13 +1699,16 @@ class _DefaultSemanticsGestureDelegate extends SemanticsGestureDelegate {
         pan.onEnd?.call(DragEndDetails());
       };
 
-    if (verticalHandler == null && panHandler == null)
+    if (verticalHandler == null && panHandler == null) {
       return null;
+    }
     return (DragUpdateDetails details) {
-      if (verticalHandler != null)
+      if (verticalHandler != null) {
         verticalHandler(details);
-      if (panHandler != null)
+      }
+      if (panHandler != null) {
         panHandler(details);
+      }
     };
   }
 }

@@ -38,13 +38,12 @@ abstract class ConstrainedLayoutBuilder<ConstraintType extends Constraints> exte
   /// The [builder] argument must not be null, and the returned widget should not
   /// be null.
   const ConstrainedLayoutBuilder({
-    Key? key,
+    super.key,
     required this.builder,
-  }) : assert(builder != null),
-       super(key: key);
+  }) : assert(builder != null);
 
   @override
-  _LayoutBuilderElement<ConstraintType> createElement() => _LayoutBuilderElement<ConstraintType>(this);
+  RenderObjectElement createElement() => _LayoutBuilderElement<ConstraintType>(this);
 
   /// Called at layout time to construct the widget tree.
   ///
@@ -55,10 +54,7 @@ abstract class ConstrainedLayoutBuilder<ConstraintType extends Constraints> exte
 }
 
 class _LayoutBuilderElement<ConstraintType extends Constraints> extends RenderObjectElement {
-  _LayoutBuilderElement(ConstrainedLayoutBuilder<ConstraintType> widget) : super(widget);
-
-  @override
-  ConstrainedLayoutBuilder<ConstraintType> get widget => super.widget as ConstrainedLayoutBuilder<ConstraintType>;
+  _LayoutBuilderElement(ConstrainedLayoutBuilder<ConstraintType> super.widget);
 
   @override
   RenderConstrainedLayoutBuilder<ConstraintType, RenderObject> get renderObject => super.renderObject as RenderConstrainedLayoutBuilder<ConstraintType, RenderObject>;
@@ -67,8 +63,9 @@ class _LayoutBuilderElement<ConstraintType extends Constraints> extends RenderOb
 
   @override
   void visitChildren(ElementVisitor visitor) {
-    if (_child != null)
+    if (_child != null) {
       visitor(_child!);
+    }
   }
 
   @override
@@ -115,10 +112,11 @@ class _LayoutBuilderElement<ConstraintType extends Constraints> extends RenderOb
   }
 
   void _layout(ConstraintType constraints) {
-    owner!.buildScope(this, () {
+    @pragma('vm:notify-debugger-on-exception')
+    void layoutCallback() {
       Widget built;
       try {
-        built = widget.builder(this, constraints);
+        built = (widget as ConstrainedLayoutBuilder<ConstraintType>).builder(this, constraints);
         debugWidgetBuilderValue(widget, built);
       } catch (e, stack) {
         built = ErrorWidget.builder(
@@ -126,9 +124,10 @@ class _LayoutBuilderElement<ConstraintType extends Constraints> extends RenderOb
             ErrorDescription('building $widget'),
             e,
             stack,
-            informationCollector: () sync* {
-              yield DiagnosticsDebugCreator(DebugCreator(this));
-            },
+            informationCollector: () => <DiagnosticsNode>[
+              if (kDebugMode)
+                DiagnosticsDebugCreator(DebugCreator(this)),
+            ],
           ),
         );
       }
@@ -141,14 +140,17 @@ class _LayoutBuilderElement<ConstraintType extends Constraints> extends RenderOb
             ErrorDescription('building $widget'),
             e,
             stack,
-            informationCollector: () sync* {
-              yield DiagnosticsDebugCreator(DebugCreator(this));
-            },
+            informationCollector: () => <DiagnosticsNode>[
+              if (kDebugMode)
+                DiagnosticsDebugCreator(DebugCreator(this)),
+            ],
           ),
         );
         _child = updateChild(null, built, slot);
       }
-    });
+    }
+
+    owner!.buildScope(this, layoutCallback);
   }
 
   @override
@@ -182,8 +184,9 @@ mixin RenderConstrainedLayoutBuilder<ConstraintType extends Constraints, ChildTy
   LayoutCallback<ConstraintType>? _callback;
   /// Change the layout callback.
   void updateCallback(LayoutCallback<ConstraintType>? value) {
-    if (value == _callback)
+    if (value == _callback) {
       return;
+    }
     _callback = value;
     markNeedsLayout();
   }
@@ -243,57 +246,11 @@ mixin RenderConstrainedLayoutBuilder<ConstraintType extends Constraints, ChildTy
 /// in an [Align] widget. If the child might want to be bigger, consider
 /// wrapping it in a [SingleChildScrollView] or [OverflowBox].
 ///
-/// {@tool dartpad --template=stateless_widget_material}
-///
+/// {@tool dartpad}
 /// This example uses a [LayoutBuilder] to build a different widget depending on the available width. Resize the
 /// DartPad window to see [LayoutBuilder] in action!
 ///
-/// ```dart
-/// Widget build(BuildContext context) {
-///   return Scaffold(
-///     appBar: AppBar(title: const Text('LayoutBuilder Example')),
-///     body: LayoutBuilder(
-///       builder: (BuildContext context, BoxConstraints constraints) {
-///         if (constraints.maxWidth > 600) {
-///           return _buildWideContainers();
-///         } else {
-///           return _buildNormalContainer();
-///         }
-///       },
-///     ),
-///   );
-/// }
-///
-/// Widget _buildNormalContainer() {
-///   return Center(
-///     child: Container(
-///       height: 100.0,
-///       width: 100.0,
-///       color: Colors.red,
-///     ),
-///   );
-/// }
-///
-/// Widget _buildWideContainers() {
-///   return Center(
-///     child: Row(
-///       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-///       children: <Widget>[
-///         Container(
-///           height: 100.0,
-///           width: 100.0,
-///           color: Colors.red,
-///         ),
-///         Container(
-///           height: 100.0,
-///           width: 100.0,
-///           color: Colors.yellow,
-///         ),
-///       ],
-///     ),
-///   );
-/// }
-/// ```
+/// ** See code in examples/api/lib/widgets/layout_builder/layout_builder.0.dart **
 /// {@end-tool}
 ///
 /// See also:
@@ -308,16 +265,15 @@ class LayoutBuilder extends ConstrainedLayoutBuilder<BoxConstraints> {
   ///
   /// The [builder] argument must not be null.
   const LayoutBuilder({
-    Key? key,
-    required LayoutWidgetBuilder builder,
-  }) : assert(builder != null),
-       super(key: key, builder: builder);
+    super.key,
+    required super.builder,
+  }) : assert(builder != null);
 
   @override
   LayoutWidgetBuilder get builder => super.builder;
 
   @override
-  _RenderLayoutBuilder createRenderObject(BuildContext context) => _RenderLayoutBuilder();
+  RenderObject createRenderObject(BuildContext context) => _RenderLayoutBuilder();
 }
 
 class _RenderLayoutBuilder extends RenderBox with RenderObjectWithChildMixin<RenderBox>, RenderConstrainedLayoutBuilder<BoxConstraints, RenderBox> {
@@ -368,8 +324,9 @@ class _RenderLayoutBuilder extends RenderBox with RenderObjectWithChildMixin<Ren
 
   @override
   double? computeDistanceToActualBaseline(TextBaseline baseline) {
-    if (child != null)
+    if (child != null) {
       return child!.getDistanceToActualBaseline(baseline);
+    }
     return super.computeDistanceToActualBaseline(baseline);
   }
 
@@ -380,8 +337,9 @@ class _RenderLayoutBuilder extends RenderBox with RenderObjectWithChildMixin<Ren
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child != null)
+    if (child != null) {
       context.paintChild(child!, offset);
+    }
   }
 
   bool _debugThrowIfNotCheckingIntrinsics() {

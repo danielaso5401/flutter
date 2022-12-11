@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   // Pumps and ensures that the BottomSheet animates non-linearly.
-  Future<void> _checkNonLinearAnimation(WidgetTester tester) async {
+  Future<void> checkNonLinearAnimation(WidgetTester tester) async {
     final Offset firstPosition = tester.getCenter(find.text('One'));
     await tester.pump(const Duration(milliseconds: 30));
     final Offset secondPosition = tester.getCenter(find.text('One'));
@@ -21,6 +21,24 @@ void main() {
     // If the animation were linear, these two values would be the same.
     expect(dyDelta1, isNot(moreOrLessEquals(dyDelta2, epsilon: 0.1)));
   }
+
+  // Regression test for https://github.com/flutter/flutter/issues/83668
+  testWidgets('Scaffold.bottomSheet update test', (WidgetTester tester) async {
+    Widget buildFrame(Widget? bottomSheet) {
+      return MaterialApp(
+        home: Scaffold(
+          body: const Placeholder(),
+          bottomSheet: bottomSheet,
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildFrame(const Text('I love Flutter!')));
+    await tester.pumpWidget(buildFrame(null));
+
+    // The disappearing animation has not yet been completed.
+    await tester.pumpWidget(buildFrame(const Text('I love Flutter!')));
+  });
 
   testWidgets('Verify that a BottomSheet can be rebuilt with ScaffoldFeatureController.setState()', (WidgetTester tester) async {
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
@@ -38,7 +56,7 @@ void main() {
         builder: (BuildContext context) {
           buildCount += 1;
           return Container(height: 200.0);
-        }
+        },
       );
     });
 
@@ -134,14 +152,14 @@ void main() {
       );
     });
     await tester.pump();
-    await _checkNonLinearAnimation(tester);
+    await checkNonLinearAnimation(tester);
 
     await tester.pumpAndSettle();
 
     expect(find.text('Two'), findsOneWidget);
 
     await tester.drag(find.text('Two'), const Offset(0.0, 200.0));
-    await _checkNonLinearAnimation(tester);
+    await checkNonLinearAnimation(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Two'), findsNothing);
@@ -390,7 +408,7 @@ void main() {
             builder: (BuildContext context) {
               scaffoldContext = context;
               return Container();
-            }
+            },
           ),
         ),
       ),
@@ -466,7 +484,6 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          bottomSheet: null,
           body: Placeholder(),
         ),
       ),
@@ -477,32 +494,35 @@ void main() {
   });
 
   // Regression test for https://github.com/flutter/flutter/issues/71435
-  testWidgets('Scaffold.bottomSheet should be updated without creating a new RO'
-      ' when the new widget has the same key and type.', (WidgetTester tester) async {
-    Widget buildFrame(String text) {
-      return MaterialApp(
-        home: Scaffold(
-          body: const Placeholder(),
-          bottomSheet: Text(text),
-        ),
-      );
-    }
+  testWidgets(
+    'Scaffold.bottomSheet should be updated without creating a new RO'
+    ' when the new widget has the same key and type.',
+    (WidgetTester tester) async {
+      Widget buildFrame(String text) {
+        return MaterialApp(
+          home: Scaffold(
+            body: const Placeholder(),
+            bottomSheet: Text(text),
+          ),
+        );
+      }
 
-    await tester.pumpWidget(buildFrame('I love Flutter!'));
-    final RenderParagraph renderBeforeUpdate = tester.renderObject(find.text('I love Flutter!'));
+      await tester.pumpWidget(buildFrame('I love Flutter!'));
+      final RenderParagraph renderBeforeUpdate = tester.renderObject(find.text('I love Flutter!'));
 
-    await tester.pumpWidget(buildFrame('Flutter is the best!'));
-    await tester.pumpAndSettle();
-    final RenderParagraph renderAfterUpdate = tester.renderObject(find.text('Flutter is the best!'));
+      await tester.pumpWidget(buildFrame('Flutter is the best!'));
+      await tester.pumpAndSettle();
+      final RenderParagraph renderAfterUpdate = tester.renderObject(find.text('Flutter is the best!'));
 
-    expect(renderBeforeUpdate, renderAfterUpdate);
-  });
+      expect(renderBeforeUpdate, renderAfterUpdate);
+    },
+  );
 
   testWidgets('Verify that visual properties are passed through', (WidgetTester tester) async {
     final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
     const Color color = Colors.pink;
     const double elevation = 9.0;
-    final ShapeBorder shape = BeveledRectangleBorder(borderRadius: BorderRadius.circular(12));
+    const ShapeBorder shape = BeveledRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12)));
     const Clip clipBehavior = Clip.antiAlias;
 
     await tester.pumpWidget(MaterialApp(
@@ -546,7 +566,7 @@ void main() {
       return Builder(
         builder: (BuildContext context) {
           return Container(height: 200.0);
-        }
+        },
       );
     });
 

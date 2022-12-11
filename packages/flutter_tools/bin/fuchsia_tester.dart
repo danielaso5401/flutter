@@ -8,15 +8,14 @@ import 'dart:convert' show json;
 import 'dart:math' as math;
 
 import 'package:args/args.dart';
+import 'package:flutter_tools/src/artifacts.dart';
 import 'package:flutter_tools/src/base/common.dart';
 import 'package:flutter_tools/src/base/context.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/io.dart';
-
 import 'package:flutter_tools/src/build_info.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/context_runner.dart';
-import 'package:flutter_tools/src/artifacts.dart';
 import 'package:flutter_tools/src/device.dart';
 import 'package:flutter_tools/src/globals.dart' as globals;
 import 'package:flutter_tools/src/project.dart';
@@ -113,16 +112,13 @@ Future<void> run(List<String> args) async {
     Directory testDirectory;
     CoverageCollector collector;
     if (argResults['coverage'] as bool) {
+      // If we have a specified coverage directory then accept all libraries by
+      // setting libraryNames to null.
+      final Set<String> libraryNames = coverageDirectory != null ? null :
+          <String>{FlutterProject.current().manifest.appName};
       collector = CoverageCollector(
         packagesPath: globals.fs.path.normalize(globals.fs.path.absolute(argResults[_kOptionPackages] as String)),
-        libraryPredicate: (String libraryName) {
-          // If we have a specified coverage directory then accept all libraries.
-          if (coverageDirectory != null) {
-            return true;
-          }
-          final String projectName = FlutterProject.current().manifest.appName;
-          return libraryName.contains(projectName);
-        });
+        libraryNames: libraryNames);
       if (!argResults.options.contains(_kOptionTestDirectory)) {
         throwToolExit('Use of --coverage requires setting --test-directory');
       }
@@ -152,7 +148,6 @@ Future<void> run(List<String> args) async {
         ),
       ),
       watcher: collector,
-      ipv6: false,
       enableObservatory: collector != null,
       precompiledDillFiles: tests,
       concurrency: math.max(1, globals.platform.numberOfProcessors - 2),

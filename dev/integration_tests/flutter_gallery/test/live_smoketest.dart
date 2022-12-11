@@ -11,14 +11,13 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart' show kPrimaryButton;
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_gallery/gallery/demos.dart';
 import 'package:flutter_gallery/gallery/app.dart' show GalleryApp;
+import 'package:flutter_gallery/gallery/demos.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 // Reports success or failure to the native code.
 const MethodChannel _kTestChannel = MethodChannel('io.flutter.demo.gallery/TestLifecycleListener');
@@ -59,7 +58,7 @@ Future<void> main() async {
 
     print('Starting app...');
     runApp(const GalleryApp(testMode: true));
-    final _LiveWidgetController controller = _LiveWidgetController(WidgetsBinding.instance!);
+    final _LiveWidgetController controller = _LiveWidgetController(WidgetsBinding.instance);
     for (final GalleryDemoCategory category in kAllGalleryDemoCategories) {
       print('Tapping "${category.name}" section...');
       await controller.tap(find.text(category.name));
@@ -102,7 +101,7 @@ final Finder backFinder = find.byElementPredicate(
 );
 
 class _LiveWidgetController extends LiveWidgetController {
-  _LiveWidgetController(WidgetsBinding binding) : super(binding);
+  _LiveWidgetController(super.binding);
 
   /// With [frameSync] enabled, Flutter Driver will wait to perform an action
   /// until there are no pending frames in the app under test.
@@ -112,7 +111,7 @@ class _LiveWidgetController extends LiveWidgetController {
   Future<void> _waitUntilFrame(bool Function() condition, [Completer<void>? completer]) {
     completer ??= Completer<void>();
     if (!condition()) {
-      SchedulerBinding.instance!.addPostFrameCallback((Duration timestamp) {
+      SchedulerBinding.instance.addPostFrameCallback((Duration timestamp) {
         _waitUntilFrame(condition, completer);
       });
     } else {

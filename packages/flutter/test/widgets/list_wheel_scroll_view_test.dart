@@ -2,12 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// This file is run as part of a reduced test set in CI on Mac and Windows
+// machines.
+@Tags(<String>['reduced-test-set'])
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/mock_canvas.dart';
-import '../rendering/rendering_tester.dart';
+import '../rendering/rendering_tester.dart' show TestClipPaintingContext, TestCallbackPainter;
 
 void main() {
   testWidgets('ListWheelScrollView respects clipBehavior', (WidgetTester tester) async {
@@ -36,8 +40,8 @@ void main() {
         textDirection: TextDirection.ltr,
         child: ListWheelScrollView(
           itemExtent: 2000.0, // huge extent to trigger clip
-          children: <Widget>[Container()],
           clipBehavior: Clip.antiAlias,
+          children: <Widget>[Container()],
         ),
       ),
     );
@@ -50,16 +54,18 @@ void main() {
 
   group('construction check', () {
     testWidgets('ListWheelScrollView needs positive diameter ratio', (WidgetTester tester) async {
-      try {
-        ListWheelScrollView(
+      expect(
+        () => ListWheelScrollView(
           diameterRatio: nonconst(-2.0),
           itemExtent: 20.0,
           children: const <Widget>[],
-        );
-        fail('Expected failure with negative diameterRatio');
-      } on AssertionError catch (exception) {
-        expect(exception.message, contains("You can't set a diameterRatio of 0"));
-      }
+        ),
+        throwsA(isAssertionError.having(
+          (AssertionError error) => error.message,
+          'message',
+          contains("You can't set a diameterRatio of 0"),
+        )),
+      );
     });
 
     testWidgets('ListWheelScrollView can have zero child', (WidgetTester tester) async {
@@ -74,7 +80,6 @@ void main() {
       );
       expect(tester.getSize(find.byType(ListWheelScrollView)), const Size(800.0, 600.0));
     });
-
 
     testWidgets('ListWheelScrollView needs positive magnification', (WidgetTester tester) async {
       expect(
@@ -116,7 +121,6 @@ void main() {
       expect(
         () {
           ListWheelScrollView(
-            overAndUnderCenterOpacity: 1,
             itemExtent: 20.0,
             children: <Widget>[Container()],
           );
@@ -226,6 +230,7 @@ void main() {
     });
 
     testWidgets('child builder with lower and upper limits', (WidgetTester tester) async {
+      // Adjust the content dimensions at the end of `RenderListWheelViewport.performLayout()`
       final List<int> paintedChildren = <int>[];
 
       final FixedExtentScrollController controller =
@@ -240,8 +245,9 @@ void main() {
             onSelectedItemChanged: (_) { },
             childDelegate: ListWheelChildBuilderDelegate(
               builder: (BuildContext context, int index) {
-                if (index < -15 || index > -5)
+                if (index < -15 || index > -5) {
                   return null;
+                }
                 return SizedBox(
                   width: 400.0,
                   height: 100.0,
@@ -281,6 +287,101 @@ void main() {
   });
 
   group('layout', () {
+    // Regression test for https://github.com/flutter/flutter/issues/90953
+    testWidgets('ListWheelScrollView childDelegate update test 2', (WidgetTester tester) async {
+      final FixedExtentScrollController controller = FixedExtentScrollController( initialItem: 2 );
+      Widget buildFrame(int childCount) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: 400.0,
+            onSelectedItemChanged: (_) { },
+            childDelegate: ListWheelChildBuilderDelegate(
+              childCount: childCount,
+              builder: (BuildContext context, int index) {
+                return SizedBox(
+                  width: 400.0,
+                  height: 400.0,
+                  child: Text(index.toString()),
+                );
+              },
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildFrame(5));
+      expect(find.text('0'), findsNothing);
+      expect(tester.renderObject(find.text('1')).attached, true);
+      expect(tester.renderObject(find.text('2')).attached, true);
+      expect(tester.renderObject(find.text('3')).attached, true);
+      expect(find.text('4'), findsNothing);
+
+      // Remove the last 3 items.
+      await tester.pumpWidget(buildFrame(2));
+      expect(tester.renderObject(find.text('0')).attached, true);
+      expect(tester.renderObject(find.text('1')).attached, true);
+      expect(find.text('3'), findsNothing);
+
+      // Add 3 items at the end.
+      await tester.pumpWidget(buildFrame(5));
+      expect(tester.renderObject(find.text('0')).attached, true);
+      expect(tester.renderObject(find.text('1')).attached, true);
+      expect(tester.renderObject(find.text('2')).attached, true);
+      expect(find.text('3'), findsNothing);
+      expect(find.text('4'), findsNothing);
+
+
+      // Scroll to the last item.
+      final TestGesture scrollGesture = await tester.startGesture(const Offset(10.0, 10.0));
+      await scrollGesture.moveBy(const Offset(0.0, -1200.0));
+      await tester.pump();
+      expect(find.text('0'), findsNothing);
+      expect(find.text('1'), findsNothing);
+      expect(find.text('2'), findsNothing);
+      expect(tester.renderObject(find.text('3')).attached, true);
+      expect(tester.renderObject(find.text('4')).attached, true);
+
+      // Remove the last 3 items.
+      await tester.pumpWidget(buildFrame(2));
+      expect(tester.renderObject(find.text('0')).attached, true);
+      expect(tester.renderObject(find.text('1')).attached, true);
+      expect(find.text('3'), findsNothing);
+    });
+
+    // Regression test for https://github.com/flutter/flutter/issues/58144
+    testWidgets('ListWheelScrollView childDelegate update test', (WidgetTester tester) async {
+      final FixedExtentScrollController controller = FixedExtentScrollController();
+      Widget buildFrame(int childCount) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: 100.0,
+            onSelectedItemChanged: (_) { },
+            childDelegate: ListWheelChildBuilderDelegate(
+              childCount: childCount,
+              builder: (BuildContext context, int index) {
+                return SizedBox(
+                  width: 400.0,
+                  height: 100.0,
+                  child: Text(index.toString()),
+                );
+              },
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildFrame(1));
+      expect(tester.renderObject(find.text('0')).attached, true);
+
+      await tester.pumpWidget(buildFrame(2));
+      expect(tester.renderObject(find.text('0')).attached, true);
+      expect(tester.renderObject(find.text('1')).attached, true);
+    });
+
     testWidgets("ListWheelScrollView takes parent's size with small children", (WidgetTester tester) async {
       await tester.pumpWidget(
         Directionality(
@@ -784,8 +885,7 @@ void main() {
     });
 
     testWidgets('offAxisFraction, magnification changes matrix', (WidgetTester tester) async {
-      final ScrollController controller = ScrollController(
-          initialScrollOffset: 200.0);
+      final ScrollController controller = ScrollController(initialScrollOffset: 200.0);
 
       await tester.pumpWidget(
         Directionality(
@@ -807,27 +907,30 @@ void main() {
       );
 
       final RenderListWheelViewport viewport = tester.renderObject(find.byType(ListWheelViewport)) as RenderListWheelViewport;
-      expect(viewport, paints
-        ..transform(
-          matrix4: equals(<dynamic>[
-            1.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            moreOrLessEquals(0.6318744917928063),
-            moreOrLessEquals(0.3420201433256688),
-            moreOrLessEquals(-0.0010260604299770066),
-            0.0,
-            moreOrLessEquals(-1.1877435020329863),
-            moreOrLessEquals(0.9396926207859083),
-            moreOrLessEquals(-0.002819077862357725),
-            0.0,
-            moreOrLessEquals(-62.20844875763376),
-            moreOrLessEquals(-138.79047052615562),
-            moreOrLessEquals(1.4163714115784667),
-          ]),
-        ));
+      expect(
+        viewport,
+        paints
+          ..transform(
+            matrix4: equals(<dynamic>[
+              1.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              moreOrLessEquals(0.6318744917928063),
+              moreOrLessEquals(0.3420201433256688),
+              moreOrLessEquals(-0.0010260604299770066),
+              0.0,
+              moreOrLessEquals(-1.1877435020329863),
+              moreOrLessEquals(0.9396926207859083),
+              moreOrLessEquals(-0.002819077862357725),
+              0.0,
+              moreOrLessEquals(-62.20844875763376),
+              moreOrLessEquals(-138.79047052615562),
+              moreOrLessEquals(1.4163714115784667),
+            ]),
+          ),
+      );
 
       controller.jumpTo(0.0);
 
@@ -852,28 +955,30 @@ void main() {
         ),
       );
 
-      expect(viewport, paints
-        ..transform(
-          matrix4: equals(<dynamic>[
-            1.5,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.5,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.5,
-            0.0,
-            0.0,
-            -150.0,
-            0.0,
-            1.0,
-          ]),
-        ));
-
+      expect(
+        viewport,
+        paints
+          ..transform(
+            matrix4: equals(<dynamic>[
+              1.5,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.5,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              1.5,
+              0.0,
+              0.0,
+              -150.0,
+              0.0,
+              1.0,
+            ]),
+          ),
+      );
     });
   });
 
@@ -1176,8 +1281,9 @@ void main() {
           textDirection: TextDirection.ltr,
           child: NotificationListener<ScrollNotification>(
             onNotification: (ScrollNotification notification) {
-              if (notification is ScrollUpdateNotification)
+              if (notification is ScrollUpdateNotification) {
                 scrolledPositions.add(notification.metrics.pixels);
+              }
               return false;
             },
             child: ListWheelScrollView(
@@ -1195,7 +1301,7 @@ void main() {
       await tester.fling(
         find.byType(ListWheelScrollView),
         const Offset(0.0, -50.0),
-        100.0,
+        800.0,
       );
 
       // At this moment, the ballistics is started but 50px is still inside the
@@ -1225,8 +1331,9 @@ void main() {
           textDirection: TextDirection.ltr,
           child: NotificationListener<ScrollNotification>(
             onNotification: (ScrollNotification notification) {
-              if (notification is ScrollUpdateNotification)
+              if (notification is ScrollUpdateNotification) {
                 scrolledPositions.add(notification.metrics.pixels);
+              }
               return false;
             },
             child: ListWheelScrollView(

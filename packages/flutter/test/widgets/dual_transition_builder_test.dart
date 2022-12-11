@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('runs animations', (WidgetTester tester) async {
@@ -138,8 +138,7 @@ void main() {
     expect(state, same(tester.state(find.byType(_StatefulTestWidget))));
   });
 
-  testWidgets('does not jump when interrupted - forward',
-      (WidgetTester tester) async {
+  testWidgets('does not jump when interrupted - forward', (WidgetTester tester) async {
     final AnimationController controller = AnimationController(
       vsync: const TestVSync(),
       duration: const Duration(milliseconds: 300),
@@ -203,8 +202,7 @@ void main() {
     expect(_getOpacity(tester), 1.0);
   });
 
-  testWidgets('does not jump when interrupted - reverse',
-      (WidgetTester tester) async {
+  testWidgets('does not jump when interrupted - reverse', (WidgetTester tester) async {
     final AnimationController controller = AnimationController(
       value: 1.0,
       vsync: const TestVSync(),
@@ -281,7 +279,7 @@ double _getOpacity(WidgetTester tester) {
 }
 
 class _StatefulTestWidget extends StatefulWidget {
-  const _StatefulTestWidget({Key? key, required this.name}) : super(key: key);
+  const _StatefulTestWidget({required this.name});
 
   final String name;
 

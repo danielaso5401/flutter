@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../../gallery/demo.dart';
 
 class BottomAppBarDemo extends StatefulWidget {
-  const BottomAppBarDemo({Key? key}) : super(key: key);
+  const BottomAppBarDemo({super.key});
 
   static const String routeName = '/material/bottom_app_bar';
 
@@ -15,8 +15,8 @@ class BottomAppBarDemo extends StatefulWidget {
   State createState() => _BottomAppBarDemoState();
 }
 
-// Flutter generally frowns upon abbrevation however this class uses two
-// abbrevations extensively: "fab" for floating action button, and "bab"
+// Flutter generally frowns upon abbreviation however this class uses two
+// abbreviations extensively: "fab" for floating action button, and "bab"
 // for bottom application bar.
 
 class _BottomAppBarDemoState extends State<BottomAppBarDemo> {
@@ -27,7 +27,6 @@ class _BottomAppBarDemoState extends State<BottomAppBarDemo> {
   static const _ChoiceValue<Widget> kNoFab = _ChoiceValue<Widget>(
     title: 'None',
     label: 'do not show a floating action button',
-    value: null,
   );
 
   static const _ChoiceValue<Widget> kCircularFab = _ChoiceValue<Widget>(
@@ -35,8 +34,8 @@ class _BottomAppBarDemoState extends State<BottomAppBarDemo> {
     label: 'circular floating action button',
     value: FloatingActionButton(
       onPressed: _showSnackbar,
-      child: Icon(Icons.add, semanticLabel: 'Action'),
       backgroundColor: Colors.orange,
+      child: Icon(Icons.add, semanticLabel: 'Action'),
     ),
   );
 
@@ -162,6 +161,7 @@ class _BottomAppBarDemoState extends State<BottomAppBarDemo> {
           ),
           body: Scrollbar(
             child: ListView(
+              primary: true,
               padding: const EdgeInsets.only(bottom: 88.0),
               children: <Widget>[
                 const _Heading('FAB Shape'),
@@ -431,6 +431,7 @@ class _DiamondFab extends StatelessWidget {
     return Material(
       shape: const _DiamondBorder(),
       color: Colors.orange,
+      elevation: 6.0,
       child: InkWell(
         onTap: onPressed,
         child: SizedBox(
@@ -442,7 +443,6 @@ class _DiamondFab extends StatelessWidget {
           ),
         ),
       ),
-      elevation: 6.0,
     );
   }
 }

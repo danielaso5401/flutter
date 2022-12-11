@@ -2,21 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
 import '../android/android_builder.dart';
 import '../android/build_validation.dart';
 import '../android/gradle_utils.dart';
 import '../build_info.dart';
 import '../cache.dart';
-import '../globals_null_migrated.dart' as globals;
+import '../globals.dart' as globals;
 import '../project.dart';
 import '../reporting/reporting.dart';
 import '../runner/flutter_command.dart' show FlutterCommandResult;
 import 'build.dart';
 
 class BuildApkCommand extends BuildSubCommand {
-  BuildApkCommand({bool verboseHelp = false}) {
+  BuildApkCommand({bool verboseHelp = false}) : super(verboseHelp: verboseHelp) {
     addTreeShakeIconsFlag();
     usesTargetOption();
     addBuildModeFlags(verboseHelp: verboseHelp);
@@ -35,6 +33,8 @@ class BuildApkCommand extends BuildSubCommand {
     addNullSafetyModeOptions(hide: !verboseHelp);
     usesAnalyzeSizeFlag();
     addAndroidSpecificBuildOptions(hide: !verboseHelp);
+    addMultidexOption();
+    addIgnoreDeprecationOption();
     argParser
       ..addFlag('split-per-abi',
         negatable: false,
@@ -42,7 +42,6 @@ class BuildApkCommand extends BuildSubCommand {
               'To learn more, see: https://developer.android.com/studio/build/configure-apk-splits#configure-abi-split',
       )
       ..addMultiOption('target-platform',
-        splitCommas: true,
         defaultsTo: <String>['android-arm', 'android-arm64', 'android-x64'],
         allowed: <String>['android-arm', 'android-arm64', 'android-x86', 'android-x64'],
         help: 'The target platform for which the app is compiled.',
@@ -54,6 +53,9 @@ class BuildApkCommand extends BuildSubCommand {
   final String name = 'apk';
 
   @override
+  DeprecationBehavior get deprecationBehavior => boolArgDeprecated('ignore-deprecation') ? DeprecationBehavior.ignore : DeprecationBehavior.exit;
+
+  @override
   Future<Set<DevelopmentArtifact>> get requiredArtifacts async => <DevelopmentArtifact>{
     DevelopmentArtifact.androidGenSnapshot,
   };
@@ -63,30 +65,30 @@ class BuildApkCommand extends BuildSubCommand {
     "This command can build debug and release versions of your application. 'debug' builds support "
     "debugging and a quick development cycle. 'release' builds don't support debugging and are "
     'suitable for deploying to app stores. If you are deploying the app to the Play Store, '
-    'it\'s recommended to use app bundles or split the APK to reduce the APK size. Learn more at:\n\n'
+    "it's recommended to use app bundles or split the APK to reduce the APK size. Learn more at:\n\n"
     ' * https://developer.android.com/guide/app-bundle\n'
     ' * https://developer.android.com/studio/build/configure-apk-splits#configure-abi-split';
 
   @override
-  Future<Map<CustomDimensions, String>> get usageValues async {
-    final Map<CustomDimensions, String> usage = <CustomDimensions, String>{};
+  Future<CustomDimensions> get usageValues async {
+    String buildMode;
 
-    usage[CustomDimensions.commandBuildApkTargetPlatform] =
-        stringsArg('target-platform').join(',');
-    usage[CustomDimensions.commandBuildApkSplitPerAbi] =
-        boolArg('split-per-abi').toString();
-
-    if (boolArg('release')) {
-      usage[CustomDimensions.commandBuildApkBuildMode] = 'release';
-    } else if (boolArg('debug')) {
-      usage[CustomDimensions.commandBuildApkBuildMode] = 'debug';
-    } else if (boolArg('profile')) {
-      usage[CustomDimensions.commandBuildApkBuildMode] = 'profile';
+    if (boolArgDeprecated('release')) {
+      buildMode = 'release';
+    } else if (boolArgDeprecated('debug')) {
+      buildMode = 'debug';
+    } else if (boolArgDeprecated('profile')) {
+      buildMode = 'profile';
     } else {
       // The build defaults to release.
-      usage[CustomDimensions.commandBuildApkBuildMode] = 'release';
+      buildMode = 'release';
     }
-    return usage;
+
+    return CustomDimensions(
+      commandBuildApkTargetPlatform: stringsArg('target-platform').join(','),
+      commandBuildApkBuildMode: buildMode,
+      commandBuildApkSplitPerAbi: boolArgDeprecated('split-per-abi'),
+    );
   }
 
   @override
@@ -97,12 +99,14 @@ class BuildApkCommand extends BuildSubCommand {
     final BuildInfo buildInfo = await getBuildInfo();
     final AndroidBuildInfo androidBuildInfo = AndroidBuildInfo(
       buildInfo,
-      splitPerAbi: boolArg('split-per-abi'),
+      splitPerAbi: boolArgDeprecated('split-per-abi'),
       targetArchs: stringsArg('target-platform').map<AndroidArch>(getAndroidArchForName),
+      multidexEnabled: boolArgDeprecated('multidex'),
     );
     validateBuild(androidBuildInfo);
     displayNullSafetyMode(androidBuildInfo.buildInfo);
-    await androidBuilder.buildApk(
+    globals.terminal.usesTerminalUi = true;
+    await androidBuilder?.buildApk(
       project: FlutterProject.current(),
       target: targetFile,
       androidBuildInfo: androidBuildInfo,

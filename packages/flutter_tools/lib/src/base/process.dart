@@ -7,11 +7,10 @@ import 'dart:async';
 import 'package:process/process.dart';
 
 import '../convert.dart';
-import 'common.dart';
 import 'io.dart';
 import 'logger.dart';
 
-typedef StringConverter = String Function(String string);
+typedef StringConverter = String? Function(String string);
 
 /// A function that will be run before the VM exits.
 typedef ShutdownHook = FutureOr<dynamic> Function();
@@ -167,11 +166,11 @@ abstract class ProcessUtils {
   Future<RunResult> run(
     List<String> cmd, {
     bool throwOnError = false,
-    RunResultChecker allowedFailures,
-    String workingDirectory,
+    RunResultChecker? allowedFailures,
+    String? workingDirectory,
     bool allowReentrantFlutter = false,
-    Map<String, String> environment,
-    Duration timeout,
+    Map<String, String>? environment,
+    Duration? timeout,
     int timeoutRetries = 0,
   });
 
@@ -180,10 +179,10 @@ abstract class ProcessUtils {
     List<String> cmd, {
     bool throwOnError = false,
     bool verboseExceptions = false,
-    RunResultChecker allowedFailures,
+    RunResultChecker? allowedFailures,
     bool hideStdout = false,
-    String workingDirectory,
-    Map<String, String> environment,
+    String? workingDirectory,
+    Map<String, String>? environment,
     bool allowReentrantFlutter = false,
     Encoding encoding = systemEncoding,
   });
@@ -192,9 +191,9 @@ abstract class ProcessUtils {
   /// directory. Completes when the process has been started.
   Future<Process> start(
     List<String> cmd, {
-    String workingDirectory,
+    String? workingDirectory,
     bool allowReentrantFlutter = false,
-    Map<String, String> environment,
+    Map<String, String>? environment,
   });
 
   /// This runs the command and streams stdout/stderr from the child process to
@@ -210,24 +209,24 @@ abstract class ProcessUtils {
   /// treated as errors, just as if they had been logged to stderr instead.
   Future<int> stream(
     List<String> cmd, {
-    String workingDirectory,
+    String? workingDirectory,
     bool allowReentrantFlutter = false,
     String prefix = '',
     bool trace = false,
-    RegExp filter,
-    RegExp stdoutErrorMatcher,
-    StringConverter mapFunction,
-    Map<String, String> environment,
+    RegExp? filter,
+    RegExp? stdoutErrorMatcher,
+    StringConverter? mapFunction,
+    Map<String, String>? environment,
   });
 
   bool exitsHappySync(
     List<String> cli, {
-    Map<String, String> environment,
+    Map<String, String>? environment,
   });
 
   Future<bool> exitsHappy(
     List<String> cli, {
-    Map<String, String> environment,
+    Map<String, String>? environment,
   });
 }
 
@@ -296,11 +295,11 @@ class _DefaultProcessUtils implements ProcessUtils {
       final Future<void> stdoutFuture = process.stdout
           .transform<String>(const Utf8Decoder(reportErrors: false))
           .listen(stdoutBuffer.write)
-          .asFuture<void>(null);
+          .asFuture<void>();
       final Future<void> stderrFuture = process.stderr
           .transform<String>(const Utf8Decoder(reportErrors: false))
           .listen(stderrBuffer.write)
-          .asFuture<void>(null);
+          .asFuture<void>();
 
       int? exitCode;
       exitCode = await process.exitCode.then<int?>((int x) => x).timeout(timeout, onTimeout: () {
@@ -452,12 +451,13 @@ class _DefaultProcessUtils implements ProcessUtils {
       .transform<String>(const LineSplitter())
       .where((String line) => filter == null || filter.hasMatch(line))
       .listen((String line) {
+        String? mappedLine = line;
         if (mapFunction != null) {
-          line = mapFunction(line);
+          mappedLine = mapFunction(line);
         }
-        if (line != null) {
-          final String message = '$prefix$line';
-          if (stdoutErrorMatcher?.hasMatch(line) == true) {
+        if (mappedLine != null) {
+          final String message = '$prefix$mappedLine';
+          if (stdoutErrorMatcher?.hasMatch(mappedLine) ?? false) {
             _logger.printError(message, wrap: false);
           } else if (trace) {
             _logger.printTrace(message);
@@ -471,11 +471,12 @@ class _DefaultProcessUtils implements ProcessUtils {
       .transform<String>(const LineSplitter())
       .where((String line) => filter == null || filter.hasMatch(line))
       .listen((String line) {
+        String? mappedLine = line;
         if (mapFunction != null) {
-          line = mapFunction(line);
+          mappedLine = mapFunction(line);
         }
-        if (line != null) {
-          _logger.printError('$prefix$line', wrap: false);
+        if (mappedLine != null) {
+          _logger.printError('$prefix$mappedLine', wrap: false);
         }
       });
 

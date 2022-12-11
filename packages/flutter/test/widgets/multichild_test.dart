@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'test_widgets.dart';
 
 void checkTree(WidgetTester tester, List<BoxDecoration> expectedDecorations) {
   final MultiChildRenderObjectElement element = tester.element(find.byElementPredicate(
-    (Element element) => element is MultiChildRenderObjectElement
+    (Element element) => element is MultiChildRenderObjectElement,
   ));
   expect(element, isNotNull);
   expect(element.renderObject, isA<RenderStack>());
@@ -26,18 +26,8 @@ void checkTree(WidgetTester tester, List<BoxDecoration> expectedDecorations) {
     }
     expect(child, isNull);
   } catch (e) {
-    print(renderObject.toStringDeep());
+    debugPrint(renderObject.toStringDeep());
     rethrow;
-  }
-}
-
-class MockMultiChildRenderObjectWidget extends MultiChildRenderObjectWidget {
-  MockMultiChildRenderObjectWidget({ Key? key, required List<Widget> children }) : super(key: key, children: children);
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    assert(false);
-    return FakeRenderObject();
   }
 }
 
@@ -120,7 +110,7 @@ void main() {
     checkTree(tester, <BoxDecoration>[kBoxDecorationC]);
 
     await tester.pumpWidget(
-      Stack(textDirection: TextDirection.ltr)
+      Stack(textDirection: TextDirection.ltr),
     );
 
     checkTree(tester, <BoxDecoration>[]);
@@ -247,7 +237,7 @@ void main() {
     checkTree(tester, <BoxDecoration>[kBoxDecorationA, kBoxDecorationB]);
 
     await tester.pumpWidget(
-      Stack(textDirection: TextDirection.ltr)
+      Stack(textDirection: TextDirection.ltr),
     );
 
     checkTree(tester, <BoxDecoration>[]);
@@ -357,15 +347,8 @@ void main() {
   });
 }
 
-class FakeRenderObject extends RenderBox {
-  @override
-  void performLayout() {
-    size = constraints.biggest;
-  }
-}
-
 class DummyWidget extends StatelessWidget {
-  const DummyWidget({ Key? key, required this.child }) : super(key: key);
+  const DummyWidget({ super.key, required this.child });
 
   final Widget child;
 

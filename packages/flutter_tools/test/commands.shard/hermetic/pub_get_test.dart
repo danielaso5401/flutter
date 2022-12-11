@@ -10,11 +10,11 @@ import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/cache.dart';
 import 'package:flutter_tools/src/commands/packages.dart';
 import 'package:flutter_tools/src/dart/pub.dart';
+import 'package:flutter_tools/src/project.dart';
 import 'package:flutter_tools/src/reporting/reporting.dart';
 import 'package:meta/meta.dart';
 import 'package:test/fake.dart';
 
-import '../../src/common.dart';
 import '../../src/context.dart';
 import '../../src/test_flutter_command_runner.dart';
 
@@ -42,11 +42,11 @@ void main() {
 
     await commandRunner.run(<String>['get']);
 
-    expect(await command.usageValues, <CustomDimensions, Object>{
-      CustomDimensions.commandPackagesNumberPlugins: '0',
-      CustomDimensions.commandPackagesProjectModule: 'false',
-      CustomDimensions.commandPackagesAndroidEmbeddingVersion: 'v1'
-    });
+    expect(await command.usageValues, const CustomDimensions(
+      commandPackagesNumberPlugins: 0,
+      commandPackagesProjectModule: false,
+      commandPackagesAndroidEmbeddingVersion: 'v1',
+    ));
   }, overrides: <Type, Generator>{
     Pub: () => pub,
     ProcessManager: () => FakeProcessManager.any(),
@@ -67,18 +67,36 @@ void main() {
 
     await commandRunner.run(<String>['get']);
 
-    expect(await command.usageValues, <CustomDimensions, Object>{
-      CustomDimensions.commandPackagesNumberPlugins: '0',
-      CustomDimensions.commandPackagesProjectModule: 'false',
-      CustomDimensions.commandPackagesAndroidEmbeddingVersion: 'v1'
-    });
+    expect(await command.usageValues, const CustomDimensions(
+      commandPackagesNumberPlugins: 0,
+      commandPackagesProjectModule: false,
+      commandPackagesAndroidEmbeddingVersion: 'v1',
+    ));
   }, overrides: <Type, Generator>{
     Pub: () => pub,
     ProcessManager: () => FakeProcessManager.any(),
     FileSystem: () => fileSystem,
   });
 
-  testUsingContext('pub get skips example directory if it dooes not contain a pubspec.yaml', () async {
+  testUsingContext('pub get on target directory', () async {
+    fileSystem.currentDirectory.childDirectory('target').createSync();
+    final Directory targetDirectory = fileSystem.currentDirectory.childDirectory('target');
+    targetDirectory.childFile('pubspec.yaml').createSync();
+
+    final PackagesGetCommand command = PackagesGetCommand('get', false);
+    final CommandRunner<void> commandRunner = createTestCommandRunner(command);
+
+    await commandRunner.run(<String>['get', targetDirectory.path]);
+    final FlutterProject rootProject = FlutterProject.fromDirectory(targetDirectory);
+    expect(rootProject.packageConfigFile.existsSync(), true);
+    expect(await rootProject.packageConfigFile.readAsString(), '{"configVersion":2,"packages":[]}');
+  }, overrides: <Type, Generator>{
+    Pub: () => pub,
+    ProcessManager: () => FakeProcessManager.any(),
+    FileSystem: () => fileSystem,
+  });
+
+  testUsingContext("pub get skips example directory if it doesn't contain a pubspec.yaml", () async {
     fileSystem.currentDirectory.childFile('pubspec.yaml').createSync();
     fileSystem.currentDirectory.childDirectory('example').createSync(recursive: true);
 
@@ -87,11 +105,11 @@ void main() {
 
     await commandRunner.run(<String>['get']);
 
-    expect(await command.usageValues, <CustomDimensions, Object>{
-      CustomDimensions.commandPackagesNumberPlugins: '0',
-      CustomDimensions.commandPackagesProjectModule: 'false',
-      CustomDimensions.commandPackagesAndroidEmbeddingVersion: 'v1'
-    });
+    expect(await command.usageValues, const CustomDimensions(
+      commandPackagesNumberPlugins: 0,
+      commandPackagesProjectModule: false,
+      commandPackagesAndroidEmbeddingVersion: 'v1',
+    ));
   }, overrides: <Type, Generator>{
     Pub: () => pub,
     ProcessManager: () => FakeProcessManager.any(),
@@ -114,8 +132,10 @@ class FakePub extends Fake implements Pub {
     bool generateSyntheticPackage = false,
     String flutterRootOverride,
     bool checkUpToDate = false,
+    bool shouldSkipThirdPartyGenerator = true,
+    bool printProgress = true,
   }) async {
-    fileSystem.currentDirectory
+    fileSystem.directory(directory)
       .childDirectory('.dart_tool')
       .childFile('package_config.json')
       ..createSync(recursive: true)

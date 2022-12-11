@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:process/process.dart';
 
 import '../base/common.dart';
@@ -57,18 +59,16 @@ class AndroidWorkflow implements Workflow {
     && _operatingSystemUtils.hostPlatform != HostPlatform.linux_arm64;
 
   @override
-  bool get canListDevices => _androidSdk != null
+  bool get canListDevices => appliesToHostPlatform && _androidSdk != null
     && _androidSdk?.adbPath != null;
 
   @override
-  bool get canLaunchDevices => _androidSdk != null
+  bool get canLaunchDevices => appliesToHostPlatform && _androidSdk != null
     && _androidSdk?.adbPath != null
-    && _androidSdk?.validateSdkWellFormed().isEmpty == true;
+    && (_androidSdk?.validateSdkWellFormed().isEmpty ?? false);
 
   @override
-  bool get canListEmulators => _androidSdk != null
-    && _androidSdk?.adbPath != null
-    && _androidSdk?.emulatorPath != null;
+  bool get canListEmulators => canListDevices && _androidSdk?.emulatorPath != null;
 }
 
 /// A validator that checks if the Android SDK and Java SDK are available and
@@ -120,7 +120,7 @@ class AndroidValidator extends DoctorValidator {
 
   /// `java -version` response is not only a number, but also includes other
   /// information eg. `openjdk version "1.7.0_212"`.
-  /// This method extracts only the semantic version from from that response.
+  /// This method extracts only the semantic version from that response.
   static String? _extractJavaVersion(String? text) {
     if (text == null || text.isEmpty) {
       return null;
@@ -186,12 +186,19 @@ class AndroidValidator extends DoctorValidator {
       return ValidationResult(ValidationType.missing, messages);
     }
 
+    messages.add(ValidationMessage(_userMessages.androidSdkLocation(androidSdk.directory.path)));
+
+    _task = 'Validating Android SDK command line tools are available';
+    if (!androidSdk.cmdlineToolsAvailable) {
+      messages.add(ValidationMessage.error(_userMessages.androidMissingCmdTools));
+      return ValidationResult(ValidationType.missing, messages);
+    }
+
+    _task = 'Validating Android SDK licenses';
     if (androidSdk.licensesAvailable && !androidSdk.platformToolsAvailable) {
       messages.add(ValidationMessage.hint(_userMessages.androidSdkLicenseOnly(kAndroidHome)));
       return ValidationResult(ValidationType.partial, messages);
     }
-
-    messages.add(ValidationMessage(_userMessages.androidSdkLocation(androidSdk.directory.path)));
 
     String? sdkVersionText;
     final AndroidSdkVersion? androidSdkLatestVersion = androidSdk.latestVersion;
@@ -199,7 +206,6 @@ class AndroidValidator extends DoctorValidator {
       if (androidSdkLatestVersion.sdkLevel < kAndroidSdkMinVersion || androidSdkLatestVersion.buildToolsVersion < kAndroidSdkBuildToolsMinVersion) {
         messages.add(ValidationMessage.error(
           _userMessages.androidSdkBuildToolsOutdated(
-            _androidSdk!.sdkManagerPath,
             kAndroidSdkMinVersion,
             kAndroidSdkBuildToolsMinVersion.toString(),
             _platform,
@@ -225,6 +231,7 @@ class AndroidValidator extends DoctorValidator {
       messages.add(ValidationMessage('$kAndroidSdkRoot = $androidSdkRoot'));
     }
 
+    _task = 'Validating Android SDK';
     final List<String> validationResult = androidSdk.validateSdkWellFormed();
 
     if (validationResult.isNotEmpty) {
@@ -236,6 +243,7 @@ class AndroidValidator extends DoctorValidator {
       return ValidationResult(ValidationType.partial, messages, statusInfo: sdkVersionText);
     }
 
+    _task = 'Finding Java binary';
     // Now check for the JDK.
     final String? javaBinary = AndroidSdk.findJavaBinary(
       androidStudio: _androidStudio,
@@ -250,7 +258,7 @@ class AndroidValidator extends DoctorValidator {
     messages.add(ValidationMessage(_userMessages.androidJdkLocation(javaBinary)));
 
     // Check JDK version.
-    if (! await _checkJavaVersion(javaBinary, messages)) {
+    if (!await _checkJavaVersion(javaBinary, messages)) {
       return ValidationResult(ValidationType.partial, messages, statusInfo: sdkVersionText);
     }
 
@@ -263,7 +271,7 @@ class AndroidValidator extends DoctorValidator {
 /// SDK have been accepted.
 class AndroidLicenseValidator extends DoctorValidator {
   AndroidLicenseValidator({
-    required AndroidSdk androidSdk,
+    required AndroidSdk? androidSdk,
     required Platform platform,
     required OperatingSystemUtils operatingSystemUtils,
     required FileSystem fileSystem,
@@ -283,7 +291,7 @@ class AndroidLicenseValidator extends DoctorValidator {
        _userMessages = userMessages,
        super('Android license subvalidator');
 
-  final AndroidSdk _androidSdk;
+  final AndroidSdk? _androidSdk;
   final AndroidStudio? _androidStudio;
   final Stdio _stdio;
   final OperatingSystemUtils _operatingSystemUtils;
@@ -301,13 +309,13 @@ class AndroidLicenseValidator extends DoctorValidator {
     final List<ValidationMessage> messages = <ValidationMessage>[];
 
     // Match pre-existing early termination behavior
-    if (_androidSdk == null || _androidSdk.latestVersion == null ||
-        _androidSdk.validateSdkWellFormed().isNotEmpty ||
+    if (_androidSdk == null || _androidSdk?.latestVersion == null ||
+        _androidSdk!.validateSdkWellFormed().isNotEmpty ||
         ! await _checkJavaVersionNoOutput()) {
       return ValidationResult(ValidationType.missing, messages);
     }
 
-    final String sdkVersionText = _userMessages.androidStatusInfo(_androidSdk.latestVersion!.buildToolsVersionName);
+    final String sdkVersionText = _userMessages.androidStatusInfo(_androidSdk!.latestVersion!.buildToolsVersionName);
 
     // Check for licenses.
     switch (await licensesAccepted) {
@@ -360,7 +368,7 @@ class AndroidLicenseValidator extends DoctorValidator {
   Future<LicensesAccepted> get licensesAccepted async {
     LicensesAccepted? status;
 
-    void _handleLine(String line) {
+    void handleLine(String line) {
       if (licenseCounts.hasMatch(line)) {
         final Match? match = licenseCounts.firstMatch(line);
         if (match?.group(1) != match?.group(2)) {
@@ -384,8 +392,8 @@ class AndroidLicenseValidator extends DoctorValidator {
 
     try {
       final Process process = await _processManager.start(
-        <String>[_androidSdk.sdkManagerPath, '--licenses'],
-        environment: _androidSdk.sdkManagerEnv,
+        <String>[_androidSdk!.sdkManagerPath!, '--licenses'],
+        environment: _androidSdk!.sdkManagerEnv,
       );
       process.stdin.write('n\n');
       // We expect logcat streams to occasionally contain invalid utf-8,
@@ -393,13 +401,13 @@ class AndroidLicenseValidator extends DoctorValidator {
       final Future<void> output = process.stdout
         .transform<String>(const Utf8Decoder(reportErrors: false))
         .transform<String>(const LineSplitter())
-        .listen(_handleLine)
-        .asFuture<void>(null);
+        .listen(handleLine)
+        .asFuture<void>();
       final Future<void> errors = process.stderr
         .transform<String>(const Utf8Decoder(reportErrors: false))
         .transform<String>(const LineSplitter())
-        .listen(_handleLine)
-        .asFuture<void>(null);
+        .listen(handleLine)
+        .asFuture<void>();
       await Future.wait<void>(<Future<void>>[output, errors]);
       return status ?? LicensesAccepted.unknown;
     } on ProcessException catch (e) {
@@ -416,13 +424,16 @@ class AndroidLicenseValidator extends DoctorValidator {
     }
 
     if (!_canRunSdkManager()) {
-      throwToolExit(_userMessages.androidMissingSdkManager(_androidSdk.sdkManagerPath, _platform));
+      throwToolExit(
+        'Android sdkmanager not found. Update to the latest Android SDK and ensure that '
+        'the cmdline-tools are installed to resolve this.'
+      );
     }
 
     try {
       final Process process = await _processManager.start(
-        <String>[_androidSdk.sdkManagerPath, '--licenses'],
-        environment: _androidSdk.sdkManagerEnv,
+        <String>[_androidSdk!.sdkManagerPath!, '--licenses'],
+        environment: _androidSdk!.sdkManagerEnv,
       );
 
       // The real stdin will never finish streaming. Pipe until the child process
@@ -452,7 +463,7 @@ class AndroidLicenseValidator extends DoctorValidator {
       return exitCode == 0;
     } on ProcessException catch (e) {
       throwToolExit(_userMessages.androidCannotRunSdkManager(
-        _androidSdk.sdkManagerPath,
+        _androidSdk?.sdkManagerPath ?? '',
         e.toString(),
         _platform,
       ));
@@ -460,7 +471,10 @@ class AndroidLicenseValidator extends DoctorValidator {
   }
 
   bool _canRunSdkManager() {
-    final String sdkManagerPath = _androidSdk.sdkManagerPath;
+    final String? sdkManagerPath = _androidSdk?.sdkManagerPath;
+    if (sdkManagerPath == null) {
+      return false;
+    }
     return _processManager.canRun(sdkManagerPath);
   }
 }

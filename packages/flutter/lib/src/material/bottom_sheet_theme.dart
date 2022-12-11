@@ -34,6 +34,7 @@ class BottomSheetThemeData with Diagnosticable {
     this.modalElevation,
     this.shape,
     this.clipBehavior,
+    this.constraints,
   });
 
   /// Default value for [BottomSheet.backgroundColor].
@@ -67,6 +68,11 @@ class BottomSheetThemeData with Diagnosticable {
   /// If null, [BottomSheet] uses [Clip.none].
   final Clip? clipBehavior;
 
+  /// Constrains the size of the [BottomSheet].
+  ///
+  /// If null, the bottom sheet's size will be unconstrained.
+  final BoxConstraints? constraints;
+
   /// Creates a copy of this object with the given fields replaced with the
   /// new values.
   BottomSheetThemeData copyWith({
@@ -76,6 +82,7 @@ class BottomSheetThemeData with Diagnosticable {
     double? modalElevation,
     ShapeBorder? shape,
     Clip? clipBehavior,
+    BoxConstraints? constraints,
   }) {
     return BottomSheetThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -84,6 +91,7 @@ class BottomSheetThemeData with Diagnosticable {
       modalElevation: modalElevation ?? this.modalElevation,
       shape: shape ?? this.shape,
       clipBehavior: clipBehavior ?? this.clipBehavior,
+      constraints: constraints ?? this.constraints,
     );
   }
 
@@ -94,8 +102,9 @@ class BottomSheetThemeData with Diagnosticable {
   /// {@macro dart.ui.shadow.lerp}
   static BottomSheetThemeData? lerp(BottomSheetThemeData? a, BottomSheetThemeData? b, double t) {
     assert(t != null);
-    if (a == null && b == null)
+    if (a == null && b == null) {
       return null;
+    }
     return BottomSheetThemeData(
       backgroundColor: Color.lerp(a?.backgroundColor, b?.backgroundColor, t),
       elevation: lerpDouble(a?.elevation, b?.elevation, t),
@@ -103,34 +112,37 @@ class BottomSheetThemeData with Diagnosticable {
       modalElevation: lerpDouble(a?.modalElevation, b?.modalElevation, t),
       shape: ShapeBorder.lerp(a?.shape, b?.shape, t),
       clipBehavior: t < 0.5 ? a?.clipBehavior : b?.clipBehavior,
+      constraints: BoxConstraints.lerp(a?.constraints, b?.constraints, t),
     );
   }
 
   @override
-  int get hashCode {
-    return hashValues(
-      backgroundColor,
-      elevation,
-      modalBackgroundColor,
-      modalElevation,
-      shape,
-      clipBehavior,
-    );
-  }
+  int get hashCode => Object.hash(
+    backgroundColor,
+    elevation,
+    modalBackgroundColor,
+    modalElevation,
+    shape,
+    clipBehavior,
+    constraints,
+  );
 
   @override
   bool operator ==(Object other) {
-    if (identical(this, other))
+    if (identical(this, other)) {
       return true;
-    if (other.runtimeType != runtimeType)
+    }
+    if (other.runtimeType != runtimeType) {
       return false;
+    }
     return other is BottomSheetThemeData
         && other.backgroundColor == backgroundColor
         && other.elevation == elevation
         && other.modalBackgroundColor == modalBackgroundColor
         && other.modalElevation == modalElevation
         && other.shape == shape
-        && other.clipBehavior == clipBehavior;
+        && other.clipBehavior == clipBehavior
+        && other.constraints == constraints;
   }
 
   @override
@@ -142,5 +154,6 @@ class BottomSheetThemeData with Diagnosticable {
     properties.add(DoubleProperty('modalElevation', modalElevation, defaultValue: null));
     properties.add(DiagnosticsProperty<ShapeBorder>('shape', shape, defaultValue: null));
     properties.add(DiagnosticsProperty<Clip>('clipBehavior', clipBehavior, defaultValue: null));
+    properties.add(DiagnosticsProperty<BoxConstraints>('constraints', constraints, defaultValue: null));
   }
 }

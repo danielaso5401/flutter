@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// @dart = 2.8
-
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:file/memory.dart';
 import 'package:file_testing/file_testing.dart';
 import 'package:flutter_tools/src/artifacts.dart';
@@ -21,8 +20,8 @@ import '../../../src/common.dart';
 import '../../../src/context.dart';
 
 void main() {
-  Environment environment;
-  FileSystem fileSystem;
+  late Environment environment;
+  late FileSystem fileSystem;
 
   setUp(() {
     fileSystem = MemoryFileSystem.test();
@@ -69,13 +68,13 @@ flutter:
     expect(depfile, exists);
 
     final DepfileService depfileService = DepfileService(
-      logger: null,
+      logger: BufferLogger.test(),
       fileSystem: fileSystem,
     );
     final Depfile dependencies = depfileService.parse(depfile);
 
     expect(
-      dependencies.inputs.firstWhere((File file) => file.path == '/bar/LICENSE', orElse: () => null),
+      dependencies.inputs.firstWhereOrNull((File file) => file.path == '/bar/LICENSE'),
       isNotNull,
     );
   }, overrides: <Type, Generator>{
@@ -88,7 +87,7 @@ flutter:
 
     expect(fileSystem.file('${environment.buildDir.path}/flutter_assets/AssetManifest.json'), exists);
     expect(fileSystem.file('${environment.buildDir.path}/flutter_assets/FontManifest.json'), exists);
-    expect(fileSystem.file('${environment.buildDir.path}/flutter_assets/NOTICES'), exists);
+    expect(fileSystem.file('${environment.buildDir.path}/flutter_assets/NOTICES.Z'), exists);
     // See https://github.com/flutter/flutter/issues/35293
     expect(fileSystem.file('${environment.buildDir.path}/flutter_assets/assets/foo/bar.png'), exists);
     // See https://github.com/flutter/flutter/issues/46163
@@ -110,8 +109,7 @@ flutter:
 
 ''');
 
-    expect(() async => const CopyAssets().build(environment),
-      throwsA(isA<Exception>()));
+    expect(() async => const CopyAssets().build(environment), throwsException);
   }, overrides: <Type, Generator>{
     FileSystem: () => fileSystem,
     ProcessManager: () => FakeProcessManager.any(),
@@ -125,7 +123,6 @@ flutter:
       targetPlatform: TargetPlatform.android,
       fileSystem: MemoryFileSystem.test(),
       logger: BufferLogger.test(),
-      engineVersion: null,
     ), isNull);
   });
 
@@ -137,8 +134,7 @@ flutter:
       targetPlatform: TargetPlatform.android,
       fileSystem: MemoryFileSystem.test(),
       logger: BufferLogger.test(),
-      engineVersion: null,
-    ), throwsA(isA<Exception>()));
+    ), throwsException);
   });
 
   testWithoutContext('processSkSLBundle throws exception if the bundle is not '
@@ -153,8 +149,7 @@ flutter:
       targetPlatform: TargetPlatform.android,
       fileSystem: fileSystem,
       logger: logger,
-      engineVersion: null,
-    ), throwsA(isA<Exception>()));
+    ), throwsException);
     expect(logger.errorText, contains('was not a JSON object'));
   });
 
@@ -170,8 +165,7 @@ flutter:
       targetPlatform: TargetPlatform.android,
       fileSystem: fileSystem,
       logger: logger,
-      engineVersion: null,
-    ), throwsA(isA<Exception>()));
+    ), throwsException);
     expect(logger.errorText, contains('was not a JSON object'));
   });
 
@@ -182,8 +176,8 @@ flutter:
     final BufferLogger logger = BufferLogger.test();
     fileSystem.file('bundle.sksl').writeAsStringSync(json.encode(
       <String, String>{
-        'engineRevision': '1'
-      }
+        'engineRevision': '1',
+      },
     ));
 
     expect(() => processSkSLBundle(
@@ -192,7 +186,7 @@ flutter:
       fileSystem: fileSystem,
       logger: logger,
       engineVersion: '2',
-    ), throwsA(isA<Exception>()));
+    ), throwsException);
     expect(logger.errorText, contains('Expected Flutter 1, but found 2'));
   });
 
@@ -204,8 +198,8 @@ flutter:
     fileSystem.file('bundle.sksl').writeAsStringSync(json.encode(
       <String, Object>{
         'engineRevision': '2',
-        'platform': 'fuchsia',
-        'data': <String, Object>{}
+        'platform': 'fuchsia-arm64',
+        'data': <String, Object>{},
       }
     ));
 
@@ -215,7 +209,7 @@ flutter:
       fileSystem: fileSystem,
       logger: logger,
       engineVersion: '2',
-    );
+    )!;
 
     expect(await content.contentsAsBytes(), utf8.encode('{"data":{}}'));
     expect(logger.errorText, contains('This may lead to less efficient shader caching'));
@@ -229,8 +223,8 @@ flutter:
       <String, Object>{
         'engineRevision': '2',
         'platform': 'android',
-        'data': <String, Object>{}
-      }
+        'data': <String, Object>{},
+      },
     ));
 
     final DevFSContent content = processSkSLBundle(
@@ -239,7 +233,7 @@ flutter:
       fileSystem: fileSystem,
       logger: logger,
       engineVersion: '2',
-    );
+    )!;
 
     expect(await content.contentsAsBytes(), utf8.encode('{"data":{}}'));
     expect(logger.errorText, isEmpty);

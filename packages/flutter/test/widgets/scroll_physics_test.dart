@@ -9,8 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 class TestScrollPhysics extends ScrollPhysics {
   const TestScrollPhysics({
     required this.name,
-    ScrollPhysics? parent
-  }) : super(parent: parent);
+    super.parent,
+  });
   final String name;
 
   @override
@@ -26,8 +26,9 @@ class TestScrollPhysics extends ScrollPhysics {
 
   @override
   String toString() {
-    if (parent == null)
+    if (parent == null) {
       return '${objectRuntimeType(this, 'TestScrollPhysics')}($name)';
+    }
     return '${objectRuntimeType(this, 'TestScrollPhysics')}($name) -> $parent';
   }
 }
@@ -93,7 +94,7 @@ void main() {
     );
   });
 
-  test('ScrollPhysics scrolling subclasses - Creating the simulation doesn\'t alter the velocity for time 0', () {
+  test("ScrollPhysics scrolling subclasses - Creating the simulation doesn't alter the velocity for time 0", () {
     final ScrollMetrics position = FixedScrollMetrics(
       minScrollExtent: 0.0,
       maxScrollExtent: 100.0,
@@ -268,7 +269,8 @@ void main() {
       // in Flutter web 0.0 sometimes just appears as 0. or 0
       expect(
         error.toStringDeep(),
-        matches(RegExp(r'''
+        matches(RegExp(
+          r'''
 FlutterError
    ClampingScrollPhysics\.applyBoundaryConditions\(\) was called
    redundantly\.
@@ -283,7 +285,7 @@ FlutterError
      FixedScrollMetrics\(500(\.\d*)?..\[0(\.\d*)?\]..500(\.\d*)?\)
 ''',
           multiLine: true,
-        ))
+        )),
       );
     }
   });
@@ -307,7 +309,7 @@ FlutterError
             itemCount: 100,
           ),
         ),
-      )
+      ),
     ));
     await tester.fling(find.text('Index 2'), const Offset(0.0, -300.0), 10000.0);
   });

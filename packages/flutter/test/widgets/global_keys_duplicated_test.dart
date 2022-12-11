@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 // There's also some duplicate GlobalKey tests in the framework_test.dart file.
 
@@ -72,8 +72,9 @@ void main() {
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               nestedSetState = setState;
-              if (flag)
+              if (flag) {
                 return const DummyWidget(key: GlobalObjectKey(0));
+              }
               return const DummyWidget();
             },
           ),
@@ -96,7 +97,7 @@ void main() {
 }
 
 class DummyWidget extends StatelessWidget {
-  const DummyWidget({ Key? key, this.child }) : super(key: key);
+  const DummyWidget({ super.key, this.child });
 
   final Widget? child;
 

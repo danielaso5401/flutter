@@ -4,10 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
 
 class StateMarker extends StatefulWidget {
-  const StateMarker({ Key? key, this.child }) : super(key: key);
+  const StateMarker({ super.key, this.child });
 
   final Widget? child;
 
@@ -20,8 +19,9 @@ class StateMarkerState extends State<StateMarker> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.child != null)
+    if (widget.child != null) {
       return widget.child!;
+    }
     return Container();
   }
 }
@@ -336,13 +336,13 @@ void main() {
     final DeactivateLogger logger = DeactivateLogger(key: key, log: log);
 
     await tester.pumpWidget(
-      Container(key: UniqueKey(), child: logger)
+      Container(key: UniqueKey(), child: logger),
     );
 
     expect(log, equals(<String>['build']));
 
     await tester.pumpWidget(
-      Container(key: UniqueKey(), child: logger)
+      Container(key: UniqueKey(), child: logger),
     );
 
     expect(log, equals(<String>['build', 'deactivate', 'build']));

@@ -2,16 +2,55 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/mock_canvas.dart';
-import '../rendering/rendering_tester.dart';
+import '../rendering/rendering_tester.dart' show TestClipPaintingContext;
 import 'states.dart';
 
 void main() {
+  // Regression test for https://github.com/flutter/flutter/issues/100451
+  testWidgets('GridView.builder respects findChildIndexCallback', (WidgetTester tester) async {
+    bool finderCalled = false;
+    int itemCount = 7;
+    late StateSetter stateSetter;
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            stateSetter = setState;
+            return GridView.builder(
+              itemCount: itemCount,
+              itemBuilder: (BuildContext _, int index) => Container(
+                key: Key('$index'),
+                height: 2000.0,
+              ),
+              findChildIndexCallback: (Key key) {
+                finderCalled = true;
+                return null;
+              },
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+              ),
+            );
+          },
+        ),
+      )
+    );
+    expect(finderCalled, false);
+
+    // Trigger update.
+    stateSetter(() => itemCount = 77);
+    await tester.pump();
+
+    expect(finderCalled, true);
+  });
+
   testWidgets('Empty GridView', (WidgetTester tester) async {
     await tester.pumpWidget(
       Directionality(
@@ -19,7 +58,6 @@ void main() {
         child: GridView.count(
           dragStartBehavior: DragStartBehavior.down,
           crossAxisCount: 4,
-          children: const <Widget>[],
         ),
       ),
     );
@@ -64,8 +102,9 @@ void main() {
     await tester.drag(find.text('Arkansas'), const Offset(0.0, -200.0));
     await tester.pump();
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i) {
       expect(find.text(kStates[i]), findsNothing);
+    }
 
     for (int i = 4; i < 12; ++i) {
       await tester.tap(find.text(kStates[i]));
@@ -79,8 +118,7 @@ void main() {
     expect(find.text('Alabama'), findsNothing);
     expect(find.text('Pennsylvania'), findsNothing);
 
-    expect(tester.getCenter(find.text('Tennessee')),
-        equals(const Offset(300.0, 100.0)));
+    expect(tester.getCenter(find.text('Tennessee')), equals(const Offset(300.0, 100.0)));
 
     await tester.tap(find.text('Tennessee'));
     expect(log, equals(<String>['Tennessee']));
@@ -138,8 +176,7 @@ void main() {
 
     expect(find.text('Alabama'), findsNothing);
 
-    expect(tester.getCenter(find.text('Tennessee')),
-        equals(const Offset(300.0, 100.0)));
+    expect(tester.getCenter(find.text('Tennessee')), equals(const Offset(300.0, 100.0)));
 
     await tester.tap(find.text('Tennessee'));
     expect(log, equals(<String>['Tennessee']));
@@ -161,7 +198,7 @@ void main() {
               builder: (BuildContext context) {
                 log.add(i);
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -253,7 +290,7 @@ void main() {
               builder: (BuildContext context) {
                 log.add(i);
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -289,7 +326,7 @@ void main() {
               builder: (BuildContext context) {
                 log.add(i);
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -328,7 +365,7 @@ void main() {
         viewportMainAxisExtent: 100.0,
         remainingCacheExtent: 0.0,
         cacheOrigin: 0.0,
-      )
+      ),
     );
     expect(layout.getMinChildIndexForScrollOffset(1000.0), 0.0);
   });
@@ -348,7 +385,7 @@ void main() {
               builder: (BuildContext context) {
                 log.add(i);
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -384,7 +421,7 @@ void main() {
               builder: (BuildContext context) {
                 log.add(i);
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -608,13 +645,50 @@ void main() {
     expect(counters[4], 2);
   });
 
+  testWidgets('GridView does not report visual overflow unnecessarily', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: GridView(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+          children: <Widget>[
+            Container(height: 200.0),
+          ],
+        ),
+      ),
+    );
+
+    // 1st, check that the render object has received the default clip behavior.
+    final RenderViewport renderObject = tester.allRenderObjects.whereType<RenderViewport>().first;
+    expect(renderObject.clipBehavior, equals(Clip.hardEdge));
+
+    // The context will get Clip.none because there is no actual visual overflow.
+    final TestClipPaintingContext context = TestClipPaintingContext();
+    renderObject.paint(context, Offset.zero);
+    expect(context.clipBehavior, equals(Clip.none));
+  });
+
   testWidgets('GridView respects clipBehavior', (WidgetTester tester) async {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
         child: GridView(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
-          children: <Widget>[Container(height: 2000.0)],
+          children: <Widget>[
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+          ],
         ),
       ),
     );
@@ -634,8 +708,22 @@ void main() {
         textDirection: TextDirection.ltr,
         child: GridView(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
-          children: <Widget>[Container(height: 2000.0)],
           clipBehavior: Clip.antiAlias,
+          children: <Widget>[
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+            Container(height: 2000.0),
+          ],
         ),
       ),
     );
@@ -686,8 +774,8 @@ void main() {
         textDirection: TextDirection.ltr,
         child: GridView.count(
           crossAxisCount: 3,
-          children: <Widget>[Container(height: 2000.0)],
           clipBehavior: Clip.antiAlias,
+          children: <Widget>[Container(height: 2000.0)],
         ),
       ),
     );
@@ -701,8 +789,8 @@ void main() {
         textDirection: TextDirection.ltr,
         child: GridView.extent(
           maxCrossAxisExtent: 1000,
-          children: <Widget>[Container(height: 2000.0)],
           clipBehavior: Clip.antiAlias,
+          children: <Widget>[Container(height: 2000.0)],
         ),
       ),
     );
@@ -726,7 +814,7 @@ void main() {
             return Builder(
               builder: (BuildContext context) {
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -752,7 +840,7 @@ void main() {
             return Builder(
               builder: (BuildContext context) {
                 return Text('$i');
-              }
+              },
             );
           }),
         ),
@@ -770,7 +858,7 @@ void main() {
       child: GridView.extent(
         maxCrossAxisExtent: maxCrossAxisExtent,
       ),
-    ), throwsA(isA<AssertionError>()));
+    ), throwsAssertionError);
 
   });
 }

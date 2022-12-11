@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:ui' show window;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -127,12 +125,13 @@ void main() {
                 child: Stack(
                   children: <Widget>[
                     Positioned(
-                        key: key,
-                        left: 0.0,
-                        top: 0.0,
-                        width: 100.0,
-                        height: 100.0,
-                        child: Semantics(label: 'label2', textDirection: TextDirection.ltr)),
+                      key: key,
+                      left: 0.0,
+                      top: 0.0,
+                      width: 100.0,
+                      height: 100.0,
+                      child: Semantics(label: 'label2', textDirection: TextDirection.ltr),
+                    ),
                     Semantics(label: 'label3', textDirection: TextDirection.ltr),
                     Semantics(label: 'label4', textDirection: TextDirection.ltr),
                   ],
@@ -300,7 +299,7 @@ void main() {
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: MediaQuery(
-              data: MediaQueryData.fromWindow(window),
+              data: MediaQueryData.fromWindow(WidgetsBinding.instance.window),
               child: Material(
                 child: Center(
                   child: Slider(
@@ -460,6 +459,7 @@ void main() {
     final RenderObject renderTextfield = tester.renderObject(find.descendant(of: find.byKey(textField), matching: find.byType(Semantics)).first);
 
     expect(
+      // ignore: avoid_dynamic_calls
       semanticsDebuggerPainter.getMessage(renderTextfield.debugSemantics),
       'textfield',
     );
@@ -482,6 +482,7 @@ void main() {
       ),
     );
 
+    // ignore: avoid_dynamic_calls
     expect(_getSemanticsDebuggerPainter(debuggerKey: debugger, tester: tester).labelStyle, labelStyle);
   });
 }
@@ -492,6 +493,7 @@ String _getMessageShownInSemanticsDebugger({
   required WidgetTester tester,
 }) {
   final dynamic semanticsDebuggerPainter = _getSemanticsDebuggerPainter(debuggerKey: debuggerKey, tester: tester);
+  // ignore: avoid_dynamic_calls
   return semanticsDebuggerPainter.getMessage(tester.renderObject(find.byKey(widgetKey)).debugSemantics) as String;
 }
 

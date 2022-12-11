@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:ui';
-
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -127,8 +125,9 @@ void main() {
                   ),
                 ],
               );
-            }),
+            },
           ),
+        ),
       ),
     ));
 
@@ -154,8 +153,8 @@ void main() {
     final List<Widget> slivers = List<Widget>.generate(30, (int i) {
       final Widget child = MergeSemantics(
         child: SizedBox(
-          child: Text('Item $i'),
           height: 72.0,
+          child: Text('Item $i'),
         ),
       );
       children.add(child);
@@ -232,7 +231,7 @@ void main() {
 
     expect(semantics, includesNodeWith(
       scrollExtentMin: 0.0,
-      scrollPosition: 394.3,
+      scrollPosition: 380.2,
       scrollExtentMax: 520.0,
       actions: <SemanticsAction>[
         SemanticsAction.scrollUp,
@@ -281,7 +280,7 @@ void main() {
 
     expect(semantics, includesNodeWith(
       scrollExtentMin: 0.0,
-      scrollPosition: 394.3,
+      scrollPosition: 380.2,
       scrollExtentMax: double.infinity,
       actions: <SemanticsAction>[
         SemanticsAction.scrollUp,
@@ -293,7 +292,7 @@ void main() {
 
     expect(semantics, includesNodeWith(
       scrollExtentMin: 0.0,
-      scrollPosition: 788.6,
+      scrollPosition: 760.4,
       scrollExtentMax: double.infinity,
       actions: <SemanticsAction>[
         SemanticsAction.scrollUp,
@@ -308,8 +307,8 @@ void main() {
     semantics = SemanticsTester(tester);
 
     final List<Widget> children = List<Widget>.generate(80, (int i) => SizedBox(
-      child: Text('Item $i'),
       height: 40.0,
+      child: Text('Item $i'),
     ));
     await tester.pumpWidget(
       Directionality(
@@ -336,8 +335,8 @@ void main() {
         child: ListView(
           children: List<Widget>.generate(40, (int i) {
             return SizedBox(
-              child: Text('item $i'),
               height: 400.0,
+              child: Text('item $i'),
             );
           }),
         ),
@@ -641,10 +640,6 @@ void main() {
 Future<void> flingUp(WidgetTester tester, { int repetitions = 1 }) => fling(tester, const Offset(0.0, -200.0), repetitions);
 
 Future<void> flingDown(WidgetTester tester, { int repetitions = 1 }) => fling(tester, const Offset(0.0, 200.0), repetitions);
-
-Future<void> flingRight(WidgetTester tester, { int repetitions = 1 }) => fling(tester, const Offset(200.0, 0.0), repetitions);
-
-Future<void> flingLeft(WidgetTester tester, { int repetitions = 1 }) => fling(tester, const Offset(-200.0, 0.0), repetitions);
 
 Future<void> fling(WidgetTester tester, Offset offset, int repetitions) async {
   while (repetitions-- > 0) {

@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 class TestSliverPersistentHeaderDelegate extends SliverPersistentHeaderDelegate {
   TestSliverPersistentHeaderDelegate(this._maxExtent);
@@ -37,15 +37,15 @@ class TestBehavior extends ScrollBehavior {
   @override
   Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
     return GlowingOverscrollIndicator(
-      child: child,
       axisDirection: details.direction,
       color: const Color(0xFFFFFFFF),
+      child: child,
     );
   }
 }
 
 class TestScrollPhysics extends ClampingScrollPhysics {
-  const TestScrollPhysics({ ScrollPhysics? parent }) : super(parent: parent);
+  const TestScrollPhysics({ super.parent });
 
   @override
   TestScrollPhysics applyTo(ScrollPhysics? ancestor) {
@@ -54,21 +54,6 @@ class TestScrollPhysics extends ClampingScrollPhysics {
 
   @override
   Tolerance get tolerance => const Tolerance(velocity: 20.0, distance: 1.0);
-}
-
-class TestViewportScrollPosition extends ScrollPositionWithSingleContext {
-  TestViewportScrollPosition({
-    required ScrollPhysics physics,
-    required ScrollContext context,
-    ScrollPosition? oldPosition,
-  }) : super(physics: physics, context: context, oldPosition: oldPosition);
-
-  @override
-  bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    expect(minScrollExtent, moreOrLessEquals(-3895.0));
-    expect(maxScrollExtent, moreOrLessEquals(8575.0));
-    return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
-  }
 }
 
 void main() {
@@ -83,11 +68,9 @@ void main() {
             behavior: const TestBehavior(),
             child: Scrollbar(
               child: Scrollable(
-                axisDirection: AxisDirection.down,
                 physics: const TestScrollPhysics(),
                 viewportBuilder: (BuildContext context, ViewportOffset offset) {
                   return Viewport(
-                    axisDirection: AxisDirection.down,
                     anchor: 0.25,
                     offset: offset,
                     center: centerKey,

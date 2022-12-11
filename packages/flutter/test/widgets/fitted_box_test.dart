@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('Can size according to aspect ratio', (WidgetTester tester) async {
@@ -346,7 +346,6 @@ void main() {
           width: 100.0,
           height: 10.0,
           child: FittedBox(
-            fit: BoxFit.contain,
             child: SizedBox(
               width: 50.0,
               height: 50.0,
@@ -445,21 +444,20 @@ void main() {
 
   testWidgets('Big child into small fitted box - hit testing', (WidgetTester tester) async {
     final GlobalKey key1 = GlobalKey();
-    bool _pointerDown = false;
+    bool pointerDown = false;
     await tester.pumpWidget(
       Center(
         child: SizedBox(
           width: 100.0,
           height: 100.0,
           child: FittedBox(
-            fit: BoxFit.contain,
             alignment: FractionalOffset.center,
             child: SizedBox(
               width: 1000.0,
               height: 1000.0,
               child: Listener(
                 onPointerDown: (PointerDownEvent event) {
-                  _pointerDown = true;
+                  pointerDown = true;
                 },
                 child: Container(
                   key: key1,
@@ -471,9 +469,9 @@ void main() {
         ),
       ),
     );
-    expect(_pointerDown, isFalse);
+    expect(pointerDown, isFalse);
     await tester.tap(find.byKey(key1));
-    expect(_pointerDown, isTrue);
+    expect(pointerDown, isTrue);
   });
 
   testWidgets('Can set and update clipBehavior', (WidgetTester tester) async {
@@ -481,7 +479,7 @@ void main() {
     final RenderFittedBox renderObject = tester.allRenderObjects.whereType<RenderFittedBox>().first;
     expect(renderObject.clipBehavior, equals(Clip.none));
 
-    await tester.pumpWidget(FittedBox(fit: BoxFit.none, child: Container(), clipBehavior: Clip.antiAlias));
+    await tester.pumpWidget(FittedBox(fit: BoxFit.none, clipBehavior: Clip.antiAlias, child: Container()));
     expect(renderObject.clipBehavior, equals(Clip.antiAlias));
   });
 
@@ -589,11 +587,29 @@ void main() {
 
     expect(outsideBox.size.height, 50.0);
   });
+
+  testWidgets('FittedBox without child does not throw', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const Center(
+        child: SizedBox(
+          width: 200.0,
+          height: 200.0,
+          child: FittedBox(),
+        ),
+      ),
+    );
+
+    expect(find.byType(FittedBox), findsOneWidget);
+
+    // Tapping it also should not throw.
+    await tester.tap(find.byType(FittedBox), warnIfMissed: false);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 List<Type> getLayers() {
   final List<Type> layers = <Type>[];
-  Layer? container = RendererBinding.instance!.renderView.debugLayer;
+  Layer? container = RendererBinding.instance.renderView.debugLayer;
   while (container is ContainerLayer) {
     layers.add(container.runtimeType);
     expect(container.firstChild, same(container.lastChild));

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:stocks/main.dart' as stocks;
 import 'package:stocks/stock_data.dart' as stock_data;
 
@@ -17,7 +17,7 @@ class BenchmarkingBinding extends LiveTestWidgetsFlutterBinding {
   final Stopwatch stopwatch;
 
   @override
-  void handleBeginFrame(Duration rawTimeStamp) {
+  void handleBeginFrame(Duration? rawTimeStamp) {
     stopwatch.start();
     super.handleBeginFrame(rawTimeStamp);
   }
@@ -30,7 +30,7 @@ class BenchmarkingBinding extends LiveTestWidgetsFlutterBinding {
 }
 
 Future<void> main() async {
-  assert(false, "Don't run benchmarks in checked mode! Use 'flutter run --release'.");
+  assert(false, "Don't run benchmarks in debug mode! Use 'flutter run --release'.");
   stock_data.StockData.actuallyFetchData = false;
 
   final Stopwatch wallClockWatch = Stopwatch();

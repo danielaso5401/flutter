@@ -11,29 +11,29 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('Basic floating action button locations', () {
     testWidgets('still animates motion when the floating action button is null', (WidgetTester tester) async {
-      await tester.pumpWidget(buildFrame(fab: null, location: null));
+      await tester.pumpWidget(_buildFrame(fab: null));
 
       expect(find.byType(FloatingActionButton), findsNothing);
       expect(tester.binding.transientCallbackCount, 0);
 
-      await tester.pumpWidget(buildFrame(fab: null, location: FloatingActionButtonLocation.endFloat));
+      await tester.pumpWidget(_buildFrame(fab: null, location: FloatingActionButtonLocation.endFloat));
 
       expect(find.byType(FloatingActionButton), findsNothing);
       expect(tester.binding.transientCallbackCount, greaterThan(0));
 
-      await tester.pumpWidget(buildFrame(fab: null, location: FloatingActionButtonLocation.centerFloat));
+      await tester.pumpWidget(_buildFrame(fab: null, location: FloatingActionButtonLocation.centerFloat));
 
       expect(find.byType(FloatingActionButton), findsNothing);
       expect(tester.binding.transientCallbackCount, greaterThan(0));
     });
 
     testWidgets('moves fab from center to end and back', (WidgetTester tester) async {
-      await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.endFloat));
+      await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.endFloat));
 
       expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(756.0, 356.0));
       expect(tester.binding.transientCallbackCount, 0);
 
-      await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.centerFloat));
+      await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.centerFloat));
 
       expect(tester.binding.transientCallbackCount, greaterThan(0));
 
@@ -42,7 +42,7 @@ void main() {
       expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(400.0, 356.0));
       expect(tester.binding.transientCallbackCount, 0);
 
-      await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.endFloat));
+      await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.endFloat));
 
       expect(tester.binding.transientCallbackCount, greaterThan(0));
 
@@ -53,11 +53,11 @@ void main() {
     });
 
     testWidgets('moves to and from custom-defined positions', (WidgetTester tester) async {
-      await tester.pumpWidget(buildFrame(location: const _StartTopFloatingActionButtonLocation()));
+      await tester.pumpWidget(_buildFrame(location: const _StartTopFloatingActionButtonLocation()));
 
       expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(44.0, 56.0));
 
-      await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.centerFloat));
+      await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.centerFloat));
       expect(tester.binding.transientCallbackCount, greaterThan(0));
 
       await tester.pumpAndSettle();
@@ -65,7 +65,7 @@ void main() {
       expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(400.0, 356.0));
       expect(tester.binding.transientCallbackCount, 0);
 
-      await tester.pumpWidget(buildFrame(location: const _StartTopFloatingActionButtonLocation()));
+      await tester.pumpWidget(_buildFrame(location: const _StartTopFloatingActionButtonLocation()));
 
       expect(tester.binding.transientCallbackCount, greaterThan(0));
 
@@ -130,8 +130,7 @@ void main() {
           final Iterable<RotationTransition> rotationTransitions = tester.widgetList(
             find.byType(RotationTransition),
           );
-          final Iterable<double> currentRotations = rotationTransitions.map(
-              (RotationTransition t) => t.turns.value);
+          final Iterable<double> currentRotations = rotationTransitions.map((RotationTransition t) => t.turns.value);
 
           if (previousRotations != null && previousRotations!.isNotEmpty
               && currentRotations != null && currentRotations.isNotEmpty
@@ -168,7 +167,7 @@ void main() {
         // We create the geometry listener here, but it can only be set up
         // after it is pumped into the widget tree and a tester is
         // available.
-        geometryListener = _GeometryListener();
+        geometryListener = const _GeometryListener();
         geometry = null;
         listenerState = null;
         previousRect = null;
@@ -177,38 +176,38 @@ void main() {
 
       testWidgets('moving the fab to centerFloat', (WidgetTester tester) async {
         // Create a scaffold with the fab at endFloat
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
         setupListener(tester);
 
         // Move the fab to centerFloat'
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
         await tester.pumpAndSettle();
       });
 
       testWidgets('interrupting motion towards the StartTop location.', (WidgetTester tester) async {
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
         setupListener(tester);
 
         // Move the fab to the top start after creating the fab.
-        await tester.pumpWidget(buildFrame(location: const _StartTopFloatingActionButtonLocation(), listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: const _StartTopFloatingActionButtonLocation(), listener: geometryListener));
         await tester.pump(kFloatingActionButtonSegue ~/ 2);
 
         // Interrupt motion to move to the end float
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
         await tester.pumpAndSettle();
       });
 
       testWidgets('interrupting entrance to remove the fab.', (WidgetTester tester) async {
-        await tester.pumpWidget(buildFrame(fab: null, location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(fab: null, location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
         setupListener(tester);
 
         // Animate the fab in.
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.endFloat, listener: geometryListener));
         await tester.pump(kFloatingActionButtonSegue ~/ 2);
 
         // Remove the fab.
         await tester.pumpWidget(
-          buildFrame(
+          _buildFrame(
             fab: null,
             location: FloatingActionButtonLocation.endFloat,
             listener: geometryListener,
@@ -219,7 +218,7 @@ void main() {
 
       testWidgets('interrupting entrance of a new fab.', (WidgetTester tester) async {
         await tester.pumpWidget(
-          buildFrame(
+          _buildFrame(
             fab: null,
             location: FloatingActionButtonLocation.endFloat,
             listener: geometryListener,
@@ -228,12 +227,12 @@ void main() {
         setupListener(tester);
 
         // Bring in a new fab.
-        await tester.pumpWidget(buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
+        await tester.pumpWidget(_buildFrame(location: FloatingActionButtonLocation.centerFloat, listener: geometryListener));
         await tester.pump(kFloatingActionButtonSegue ~/ 2);
 
         // Interrupt motion to move the fab.
         await tester.pumpWidget(
-          buildFrame(
+          _buildFrame(
             location: FloatingActionButtonLocation.endFloat,
             listener: geometryListener,
           ),
@@ -245,7 +244,7 @@ void main() {
 
   testWidgets('Docked floating action button locations', (WidgetTester tester) async {
     await tester.pumpWidget(
-      buildFrame(
+      _buildFrame(
         location: FloatingActionButtonLocation.endDocked,
         bab: const SizedBox(height: 100.0),
         viewInsets: EdgeInsets.zero,
@@ -257,7 +256,7 @@ void main() {
     expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(756.0, 500.0));
 
     await tester.pumpWidget(
-      buildFrame(
+      _buildFrame(
         location: FloatingActionButtonLocation.centerDocked,
         bab: const SizedBox(height: 100.0),
         viewInsets: EdgeInsets.zero,
@@ -268,7 +267,7 @@ void main() {
 
 
     await tester.pumpWidget(
-      buildFrame(
+      _buildFrame(
         location: FloatingActionButtonLocation.endDocked,
         bab: const SizedBox(height: 100.0),
         viewInsets: EdgeInsets.zero,
@@ -280,7 +279,7 @@ void main() {
 
   testWidgets('Docked floating action button locations: no BAB, small BAB', (WidgetTester tester) async {
     await tester.pumpWidget(
-      buildFrame(
+      _buildFrame(
         location: FloatingActionButtonLocation.endDocked,
         viewInsets: EdgeInsets.zero,
       ),
@@ -288,7 +287,7 @@ void main() {
     expect(tester.getCenter(find.byType(FloatingActionButton)), const Offset(756.0, 572.0));
 
     await tester.pumpWidget(
-      buildFrame(
+      _buildFrame(
         location: FloatingActionButtonLocation.endDocked,
         bab: const SizedBox(height: 16.0),
         viewInsets: EdgeInsets.zero,
@@ -611,7 +610,7 @@ void main() {
   });
 
   group('Locations account for safe interactive areas', () {
-    Widget _buildTest(
+    Widget buildTest(
       FloatingActionButtonLocation location,
       MediaQueryData data,
       Key key, {
@@ -642,7 +641,6 @@ void main() {
                   label: '1',
                 ),
               ],
-              currentIndex: 0,
             ) : null,
             floatingActionButtonLocation: location,
             floatingActionButton: Builder(
@@ -653,14 +651,14 @@ void main() {
                       const SnackBar(content: Text('Snacky!')),
                     );
                   },
-                  child: const Text('FAB'),
                   mini: mini,
                   key: key,
+                  child: const Text('FAB'),
                 );
-              }
+              },
             ),
-          )
-        )
+          ),
+        ),
       );
     }
 
@@ -674,7 +672,7 @@ void main() {
     //  - with BottomSheet
     //  - with BottomSheet and resizeToAvoidBottomInset: false
     //  - with SnackBar
-    Future<void> _runFloatTests(
+    Future<void> runFloatTests(
       WidgetTester tester,
       FloatingActionButtonLocation location, {
       required Rect defaultRect,
@@ -688,7 +686,7 @@ void main() {
       final Key floatingActionButton = UniqueKey();
       const double bottomNavHeight = 106.0;
       // Default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(bottom: viewPadding)),
         floatingActionButton,
@@ -699,7 +697,7 @@ void main() {
         rectMoreOrLessEquals(defaultRect),
       );
       // Present keyboard and check position, should change
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
@@ -718,7 +716,7 @@ void main() {
 
       // With resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
@@ -734,7 +732,7 @@ void main() {
       );
 
       // BottomNavigationBar default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -749,7 +747,7 @@ void main() {
         rectMoreOrLessEquals(bottomNavigationBarRect),
       );
       // Present keyboard and check position, FAB position changes
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -770,12 +768,12 @@ void main() {
 
       // BottomNavigationBar with resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         bottomNavigationBar: true,
@@ -788,7 +786,7 @@ void main() {
       );
 
       // BottomNavigationBar + BottomSheet default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -807,7 +805,7 @@ void main() {
         )),
       );
       // Present keyboard and check position, FAB position changes
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -829,12 +827,12 @@ void main() {
 
       // BottomNavigationBar + BottomSheet with resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         bottomNavigationBar: true,
@@ -851,7 +849,7 @@ void main() {
       );
 
       // BottomSheet default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(bottom: viewPadding)),
         floatingActionButton,
@@ -863,7 +861,7 @@ void main() {
         rectMoreOrLessEquals(bottomSheetRect),
       );
       // Present keyboard and check position, bottomSheet and FAB both resize
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
@@ -880,11 +878,11 @@ void main() {
 
       // bottomSheet with resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default bottomSheet position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         bottomSheet: true,
@@ -897,7 +895,7 @@ void main() {
       );
 
       // SnackBar default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(bottom: viewPadding)),
         floatingActionButton,
@@ -911,11 +909,11 @@ void main() {
       );
 
       // SnackBar when resized for presented keyboard
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         mini: mini,
@@ -936,7 +934,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(16.0, 472.0, 72.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(16.0, 478.0, 72.0, 534.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.startFloat,
         defaultRect: defaultRect,
@@ -954,7 +952,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(12.0, 480.0, 60.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(12.0, 490.0, 60.0, 538.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.miniStartFloat,
         defaultRect: defaultRect,
@@ -973,7 +971,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(372.0, 472.0, 428.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(372.0, 478.0, 428.0, 534.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.centerFloat,
         defaultRect: defaultRect,
@@ -991,7 +989,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(376.0, 480.0, 424.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(376.0, 490.0, 424.0, 538.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.miniCenterFloat,
         defaultRect: defaultRect,
@@ -1010,7 +1008,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(728.0, 472.0, 784.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(728.0, 478.0, 784.0, 534.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.endFloat,
         defaultRect: defaultRect,
@@ -1028,7 +1026,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(740.0, 480.0, 788.0, 528.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(740.0, 490.0, 788.0, 538.0);
-      await _runFloatTests(
+      await runFloatTests(
         tester,
         FloatingActionButtonLocation.miniEndFloat,
         defaultRect: defaultRect,
@@ -1049,7 +1047,7 @@ void main() {
     //  - docked with BottomNavigationBar & BottomSheet
     //  - docked with BottomNavigationBar & BottomSheet, resizeToAvoidBottomInset: false
     //  - with SnackBar
-    Future<void> _runDockedTests(
+    Future<void> runDockedTests(
       WidgetTester tester,
       FloatingActionButtonLocation location, {
       required Rect defaultRect,
@@ -1065,7 +1063,7 @@ void main() {
       final Key floatingActionButton = UniqueKey();
       final double fabHeight = mini ? 48.0 : 56.0;
       // Default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(bottom: viewPadding)),
         floatingActionButton,
@@ -1076,7 +1074,7 @@ void main() {
         rectMoreOrLessEquals(defaultRect),
       );
       // Present keyboard and check position, should change
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
@@ -1100,7 +1098,7 @@ void main() {
 
       // With resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
@@ -1116,7 +1114,7 @@ void main() {
       );
 
       // BottomNavigationBar default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -1131,7 +1129,7 @@ void main() {
         rectMoreOrLessEquals(bottomNavigationBarRect),
       );
       // Present keyboard and check position, FAB position changes
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -1157,12 +1155,12 @@ void main() {
 
       // BottomNavigationBar with resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         bottomNavigationBar: true,
@@ -1175,7 +1173,7 @@ void main() {
       );
 
       // BottomNavigationBar + BottomSheet default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -1191,7 +1189,7 @@ void main() {
         rectMoreOrLessEquals(bottomSheetRect),
       );
       // Present keyboard and check position, FAB position changes
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -1218,12 +1216,12 @@ void main() {
 
       // BottomNavigationBar + BottomSheet with resizeToAvoidBottomInset: false
       // With keyboard presented, should maintain default position
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         bottomNavigationBar: true,
@@ -1237,7 +1235,7 @@ void main() {
       );
 
       // SnackBar default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(bottom: viewPadding)),
         floatingActionButton,
@@ -1251,7 +1249,7 @@ void main() {
       );
 
       // SnackBar with BottomNavigationBar
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           padding: EdgeInsets.only(bottom: viewPadding),
@@ -1269,11 +1267,11 @@ void main() {
       );
 
       // SnackBar when resized for presented keyboard
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(
           viewPadding: EdgeInsets.only(bottom: viewPadding),
-          viewInsets: EdgeInsets.only(bottom: keyboardHeight)
+          viewInsets: EdgeInsets.only(bottom: keyboardHeight),
         ),
         floatingActionButton,
         mini: mini,
@@ -1299,7 +1297,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(16.0, 366.0, 72.0, 422.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(16.0, 486.0, 72.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.startDocked,
         defaultRect: defaultRect,
@@ -1317,7 +1315,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(12.0, 370.0, 60.0, 418.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(12.0, 494.0, 60.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.miniStartDocked,
         defaultRect: defaultRect,
@@ -1336,7 +1334,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(372.0, 366.0, 428.0, 422.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(372.0, 486.0, 428.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.centerDocked,
         defaultRect: defaultRect,
@@ -1354,7 +1352,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(376.0, 370.0, 424.0, 418.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(376.0, 494.0, 424.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.miniCenterDocked,
         defaultRect: defaultRect,
@@ -1373,7 +1371,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(728.0, 366.0, 784.0, 422.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(728.0, 486.0, 784.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.endDocked,
         defaultRect: defaultRect,
@@ -1391,7 +1389,7 @@ void main() {
       const Rect bottomSheetRect = Rect.fromLTRB(740.0, 370.0, 788.0, 418.0);
       // Positioned relative to SnackBar
       const Rect snackBarRect = Rect.fromLTRB(740.0, 494.0, 788.0, 542.0);
-      await _runDockedTests(
+      await runDockedTests(
         tester,
         FloatingActionButtonLocation.miniEndDocked,
         defaultRect: defaultRect,
@@ -1405,7 +1403,7 @@ void main() {
     // Test top locations, for each (6):
     //  - Default
     //  - with an AppBar
-    Future<void> _runTopTests(
+    Future<void> runTopTests(
       WidgetTester tester,
       FloatingActionButtonLocation location, {
       required Rect defaultRect,
@@ -1415,7 +1413,7 @@ void main() {
       const double viewPadding = 50.0;
       final Key floatingActionButton = UniqueKey();
       // Default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(top: viewPadding)),
         floatingActionButton,
@@ -1427,7 +1425,7 @@ void main() {
       );
 
       // AppBar default
-      await tester.pumpWidget(_buildTest(
+      await tester.pumpWidget(buildTest(
         location,
         const MediaQueryData(viewPadding: EdgeInsets.only(top: viewPadding)),
         floatingActionButton,
@@ -1444,7 +1442,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(16.0, 50.0, 72.0, 106.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(16.0, 28.0, 72.0, 84.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.startTop,
         defaultRect: defaultRect,
@@ -1456,7 +1454,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(12.0, 50.0, 60.0, 98.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(12.0, 32.0, 60.0, 80.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.miniStartTop,
         defaultRect: defaultRect,
@@ -1469,7 +1467,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(372.0, 50.0, 428.0, 106.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(372.0, 28.0, 428.0, 84.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.centerTop,
         defaultRect: defaultRect,
@@ -1481,7 +1479,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(376.0, 50.0, 424.0, 98.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(376.0, 32.0, 424.0, 80.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.miniCenterTop,
         defaultRect: defaultRect,
@@ -1494,7 +1492,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(728.0, 50.0, 784.0, 106.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(728.0, 28.0, 784.0, 84.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.endTop,
         defaultRect: defaultRect,
@@ -1506,7 +1504,7 @@ void main() {
       const Rect defaultRect = Rect.fromLTRB(740.0, 50.0, 788.0, 98.0);
       // Positioned relative to AppBar
       const Rect appBarRect = Rect.fromLTRB(740.0, 32.0, 788.0, 80.0);
-      await _runTopTests(
+      await runTopTests(
         tester,
         FloatingActionButtonLocation.miniEndTop,
         defaultRect: defaultRect,
@@ -1518,6 +1516,8 @@ void main() {
 }
 
 class _GeometryListener extends StatefulWidget {
+  const _GeometryListener();
+
   @override
   State createState() => _GeometryListenerState();
 }
@@ -1526,7 +1526,7 @@ class _GeometryListenerState extends State<_GeometryListener> {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: cache
+      painter: cache,
     );
   }
 
@@ -1538,11 +1538,13 @@ class _GeometryListenerState extends State<_GeometryListener> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final ValueListenable<ScaffoldGeometry> newListenable = Scaffold.geometryOf(context);
-    if (geometryListenable == newListenable)
+    if (geometryListenable == newListenable) {
       return;
+    }
 
-    if (geometryListenable != null)
+    if (geometryListenable != null) {
       geometryListenable!.removeListener(onGeometryChanged);
+    }
 
     geometryListenable = newListenable;
     geometryListenable!.addListener(onGeometryChanged);
@@ -1594,8 +1596,8 @@ Widget _singleFabScaffold(
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {},
-          child: const Icon(Icons.beach_access),
           mini: mini,
+          child: const Icon(Icons.beach_access),
         ),
         floatingActionButtonLocation: location,
         floatingActionButtonAnimator: animator,
@@ -1624,7 +1626,7 @@ class _GeometryCachePainter extends CustomPainter {
   }
 }
 
-Widget buildFrame({
+Widget _buildFrame({
   FloatingActionButton? fab = const FloatingActionButton(
     onPressed: null,
     child: Text('1'),
@@ -1642,18 +1644,19 @@ Widget buildFrame({
       DefaultMaterialLocalizations.delegate,
     ],
     child: Directionality(
-    textDirection: textDirection,
-    child: MediaQuery(
-      data: MediaQueryData(viewInsets: viewInsets),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('FabLocation Test')),
-        floatingActionButtonLocation: location,
-        floatingActionButton: fab,
-        bottomNavigationBar: bab,
-        body: listener,
+      textDirection: textDirection,
+      child: MediaQuery(
+        data: MediaQueryData(viewInsets: viewInsets),
+        child: Scaffold(
+          appBar: AppBar(title: const Text('FabLocation Test')),
+          floatingActionButtonLocation: location,
+          floatingActionButton: fab,
+          bottomNavigationBar: bab,
+          body: listener,
+        ),
       ),
     ),
-  ));
+  );
 }
 
 class _StartTopFloatingActionButtonLocation extends FloatingActionButtonLocation {

@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('debugCheckHasMaterial control test', (WidgetTester tester) async {
-    await tester.pumpWidget(const ListTile());
+    await tester.pumpWidget(const Chip(label: Text('label')));
     final dynamic exception = tester.takeException();
     expect(exception, isFlutterError);
     final FlutterError error = exception as FlutterError;
@@ -24,11 +24,12 @@ void main() {
     );
     expect(error.diagnostics[3], isA<DiagnosticsProperty<Element>>());
     expect(error.diagnostics[4], isA<DiagnosticsBlock>());
-    expect(error.toStringDeep(),
+    expect(
+      error.toStringDeep(),
       'FlutterError\n'
       '   No Material widget found.\n'
-      '   ListTile widgets require a Material widget ancestor.\n'
-      '   In material design, most widgets are conceptually "printed" on a\n'
+      '   Chip widgets require a Material widget ancestor.\n'
+      '   In Material Design, most widgets are conceptually "printed" on a\n'
       "   sheet of material. In Flutter's material library, that material\n"
       '   is represented by the Material widget. It is the Material widget\n'
       '   that renders ink splashes, for instance. Because of this, many\n'
@@ -38,14 +39,13 @@ void main() {
       '   one, or use a widget that contains Material itself, such as a\n'
       '   Card, Dialog, Drawer, or Scaffold.\n'
       '   The specific widget that could not find a Material ancestor was:\n'
-      '     ListTile\n'
+      '     Chip\n'
       '   The ancestors of this widget were:\n'
-      '     [root]\n'
+      '     [root]\n',
     );
   });
 
-  testWidgets('debugCheckHasMaterialLocalizations control test', (
-      WidgetTester tester) async {
+  testWidgets('debugCheckHasMaterialLocalizations control test', (WidgetTester tester) async {
     await tester.pumpWidget(const BackButton());
     final dynamic exception = tester.takeException();
     expect(exception, isFlutterError);
@@ -62,7 +62,8 @@ void main() {
     );
     expect(error.diagnostics[4], isA<DiagnosticsProperty<Element>>());
     expect(error.diagnostics[5], isA<DiagnosticsBlock>());
-    expect(error.toStringDeep(),
+    expect(
+      error.toStringDeep(),
       'FlutterError\n'
       '   No MaterialLocalizations found.\n'
       '   BackButton widgets require MaterialLocalizations to be provided\n'
@@ -76,12 +77,11 @@ void main() {
       '   ancestor was:\n'
       '     BackButton\n'
       '   The ancestors of this widget were:\n'
-      '     [root]\n'
+      '     [root]\n',
     );
   });
 
-  testWidgets(
-      'debugCheckHasScaffold control test', (WidgetTester tester) async {
+  testWidgets('debugCheckHasScaffold control test', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(
@@ -93,10 +93,12 @@ void main() {
         ),
         home: Builder(
           builder: (BuildContext context) {
-            showBottomSheet<void>(context: context,
-                builder: (BuildContext context) => Container());
+            showBottomSheet<void>(
+              context: context,
+              builder: (BuildContext context) => Container(),
+            );
             return Container();
-          }
+          },
         ),
       ),
     );
@@ -132,6 +134,7 @@ void main() {
       '     _FadeUpwardsPageTransition\n'
       '     AnimatedBuilder\n'
       '     RepaintBoundary\n'
+      '     FocusTrap\n'
       '     _FocusMarker\n'
       '     Semantics\n'
       '     FocusScope\n'
@@ -160,6 +163,7 @@ void main() {
       '     Listener\n'
       '     HeroControllerScope\n'
       '     Navigator-[GlobalObjectKey<NavigatorState> _WidgetsAppState#00000]\n'
+      '     DefaultSelectionStyle\n'
       '     IconTheme\n'
       '     IconTheme\n'
       '     _InheritedCupertinoTheme\n'
@@ -167,6 +171,7 @@ void main() {
       '     _InheritedTheme\n'
       '     Theme\n'
       '     AnimatedTheme\n'
+      '     DefaultSelectionStyle\n'
       '     _ScaffoldMessengerScope\n'
       '     ScaffoldMessenger\n'
       '     Builder\n'
@@ -181,61 +186,75 @@ void main() {
       '     Localizations\n'
       '     MediaQuery\n'
       '     _MediaQueryFromWindow\n'
+      '     _ShortcutRegistrarMarker\n'
+      '     Semantics\n'
+      '     _FocusMarker\n'
+      '     Focus\n'
+      '     Shortcuts\n'
+      '     ShortcutRegistrar\n'
       '     _FocusMarker\n'
       '     Focus\n'
       '     _FocusTraversalGroupMarker\n'
       '     FocusTraversalGroup\n'
       '     _ActionsMarker\n'
-      '     DefaultTextEditingActions\n'
-      '     _ActionsMarker\n'
       '     Actions\n'
-      '     _ShortcutsMarker\n'
-      '     Semantics\n'
-      '     _FocusMarker\n'
-      '     Focus\n'
-      '     DefaultTextEditingShortcuts\n'
-      '     _ShortcutsMarker\n'
+      '${kIsWeb
+          ? '     Semantics\n'
+            '     _FocusMarker\n'
+            '     Focus\n'
+            '     Shortcuts\n'
+           : ''}'
       '     Semantics\n'
       '     _FocusMarker\n'
       '     Focus\n'
       '     Shortcuts\n'
+      '     DefaultTextEditingShortcuts\n'
+      '     Semantics\n'
+      '     _FocusMarker\n'
+      '     Focus\n'
+      '     Shortcuts\n'
+      '     _SharedAppModel\n'
+      '     SharedAppData\n'
       '     UnmanagedRestorationScope\n'
       '     RestorationScope\n'
       '     UnmanagedRestorationScope\n'
       '     RootRestorationScope\n'
       '     WidgetsApp-[GlobalObjectKey _MaterialAppState#00000]\n'
+      '     Semantics\n'
+      '     _FocusMarker\n'
+      '     Focus\n'
       '     HeroControllerScope\n'
       '     ScrollConfiguration\n'
       '     MaterialApp\n'
       '     [root]\n'
       '   Typically, the Scaffold widget is introduced by the MaterialApp\n'
-      '   or WidgetsApp widget at the top of your application widget tree.\n',
+      '   or WidgetsApp widget at the top of your application widget tree.\n'
     ));
   });
 
   testWidgets('debugCheckHasScaffoldMessenger control test', (WidgetTester tester) async {
-    final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-    final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+    final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
     final SnackBar snackBar = SnackBar(
       content: const Text('Snack'),
-      action: SnackBarAction(label: 'Test', onPressed: () {})
+      action: SnackBarAction(label: 'Test', onPressed: () {}),
     );
     await tester.pumpWidget(Directionality(
       textDirection: TextDirection.ltr,
       child: MediaQuery(
         data: const MediaQueryData(),
         child: ScaffoldMessenger(
-          key: _scaffoldMessengerKey,
+          key: scaffoldMessengerKey,
           child: Builder(
             builder: (BuildContext context) {
               return Scaffold(
-                key: _scaffoldKey,
+                key: scaffoldKey,
                 body: Container(),
               );
-            }
-          )
+            },
+          ),
         ),
-      )
+      ),
     ));
     final List<dynamic> exceptions = <dynamic>[];
     final FlutterExceptionHandler? oldHandler = FlutterError.onError;
@@ -243,7 +262,7 @@ void main() {
       exceptions.add(details.exception);
     };
     // ScaffoldMessenger shows SnackBar.
-    _scaffoldMessengerKey.currentState!.showSnackBar(snackBar);
+    scaffoldMessengerKey.currentState!.showSnackBar(snackBar);
     await tester.pumpAndSettle();
 
     // Pump widget to rebuild without ScaffoldMessenger
@@ -252,17 +271,20 @@ void main() {
       child: MediaQuery(
         data: const MediaQueryData(),
         child: Scaffold(
-          key: _scaffoldKey,
+          key: scaffoldKey,
           body: Container(),
         ),
       ),
     ));
-    // The Scaffold should assert we still have an ancestor ScaffoldMessenger in
-    // order to dismiss the SnackBar from the ScaffoldMessenger.
+    // Tap SnackBarAction to dismiss.
+    // The SnackBarAction should assert we still have an ancestor
+    // ScaffoldMessenger in order to dismiss the SnackBar from the
+    // Scaffold.
     await tester.tap(find.text('Test'));
     FlutterError.onError = oldHandler;
 
     expect(exceptions.length, 1);
+    // ignore: avoid_dynamic_calls
     expect(exceptions.single.runtimeType, FlutterError);
     final FlutterError error = exceptions.first as FlutterError;
     expect(error.diagnostics.length, 5);
@@ -279,16 +301,76 @@ void main() {
     expect(error.toStringDeep(), equalsIgnoringHashCodes(
       'FlutterError\n'
       '   No ScaffoldMessenger widget found.\n'
-      '   Scaffold widgets require a ScaffoldMessenger widget ancestor.\n'
+      '   SnackBarAction widgets require a ScaffoldMessenger widget\n'
+      '   ancestor.\n'
       '   The specific widget that could not find a ScaffoldMessenger\n'
       '   ancestor was:\n'
-      '     Scaffold-[LabeledGlobalKey<ScaffoldState>#00829]\n'
+      '     SnackBarAction\n'
       '   The ancestors of this widget were:\n'
+      '     TextButtonTheme\n'
+      '     Padding\n'
+      '     Row\n'
+      '     Padding\n'
+      '     MediaQuery\n'
+      '     Padding\n'
+      '     SafeArea\n'
+      '     FadeTransition\n'
+      '     DefaultSelectionStyle\n'
+      '     IconTheme\n'
+      '     IconTheme\n'
+      '     _InheritedCupertinoTheme\n'
+      '     CupertinoTheme\n'
+      '     _InheritedTheme\n'
+      '     Theme\n'
+      '     DefaultTextStyle\n'
+      '     AnimatedDefaultTextStyle\n'
+      '     _InkFeatures-[GlobalKey#00000 ink renderer]\n'
+      '     NotificationListener<LayoutChangedNotification>\n'
+      '     PhysicalModel\n'
+      '     AnimatedPhysicalModel\n'
+      '     Material\n'
+      '     FractionalTranslation\n'
+      '     SlideTransition\n'
+      '     Listener\n'
+      '     _GestureSemantics\n'
+      '     RawGestureDetector\n'
+      '     GestureDetector\n'
+      "     Dismissible-[<'dismissible'>]\n"
+      '     Semantics\n'
+      '     Align\n'
+      '     AnimatedBuilder\n'
+      '     ClipRect\n'
+      '     KeyedSubtree-[GlobalKey#00000]\n'
+      '     _EffectiveTickerMode\n'
+      '     TickerMode\n'
+      '     Offstage\n'
+      '     SizedBox\n'
+      '     Hero\n'
+      '     SnackBar-[#00000]\n'
+      '     MediaQuery\n'
+      '     LayoutId-[<_ScaffoldSlot.snackBar>]\n'
+      '     CustomMultiChildLayout\n'
+      '     _ActionsMarker\n'
+      '     Actions\n'
+      '     AnimatedBuilder\n'
+      '     DefaultTextStyle\n'
+      '     AnimatedDefaultTextStyle\n'
+      '     _InkFeatures-[GlobalKey#00000 ink renderer]\n'
+      '     NotificationListener<LayoutChangedNotification>\n'
+      '     PhysicalModel\n'
+      '     AnimatedPhysicalModel\n'
+      '     Material\n'
+      '     _ScrollNotificationObserverScope\n'
+      '     NotificationListener<ScrollNotification>\n'
+      '     NotificationListener<ScrollMetricsNotification>\n'
+      '     ScrollNotificationObserver\n'
+      '     _ScaffoldScope\n'
+      '     Scaffold-[LabeledGlobalKey<ScaffoldState>#00000]\n'
       '     MediaQuery\n'
       '     Directionality\n'
       '     [root]\n'
       '   Typically, the ScaffoldMessenger widget is introduced by the\n'
-      '   MaterialApp at the top of your application widget tree.\n'
+      '   MaterialApp at the top of your application widget tree.\n',
     ));
   });
 }
